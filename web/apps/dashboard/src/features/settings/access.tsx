@@ -14,7 +14,9 @@ import { StatusDot } from "@hearth/ui/components/status-dot";
 import {
   useGateway,
   useGatewayAction,
+  useSettings,
   useTailscale,
+  useTailscaleCerts,
   useUsers,
 } from "../../api/hooks";
 import { navigate } from "../../lib/url-state";
@@ -37,14 +39,19 @@ export function AccessSection() {
   const host = ts.data?.dns_name ?? "your-machine.ts.net";
   const noUsers = (users.data?.length ?? 0) === 0;
   const tsUp = ts.data?.backend_state === "Running";
-  const httpsOff = tsUp && !ts.data?.https_enabled;
+  const settings = useSettings();
+  const certs = useTailscaleCerts();
+  const own = settings.data?.tailscale_certs === "hearth";
+  const httpsOff = tsUp && !own && !ts.data?.https_enabled;
   const blocked = noUsers
     ? "Add a user first (Settings → Users)."
     : !tsUp
       ? "Connect Tailscale first (Settings → Network)."
       : httpsOff
-        ? "Turn on MagicDNS and HTTPS Certificates for your tailnet first (login.tailscale.com/admin/dns)."
-        : null;
+        ? "Your tailnet has no HTTPS certificates. Turn them on at login.tailscale.com/admin/dns, or use hearth’s own certificate."
+        : tsUp && !ts.data?.magic_dns
+          ? "Turn on MagicDNS for your tailnet first (login.tailscale.com/admin/dns)."
+          : null;
 
   return (
     <>
@@ -55,7 +62,7 @@ export function AccessSection() {
 
       <SettingsGroup
         title="Gateway"
-        description="Needed to open hearth and your apps from other devices. Runs Caddy and Authelia (your login), then publishes everything with HTTPS on your Tailscale network. Requires Tailscale with HTTPS certificates and at least one login."
+        description="Needed to open hearth and your apps from other devices. Runs Caddy and Authelia (your login), then publishes everything with HTTPS on your Tailscale network. Requires Tailscale (with its HTTPS certificates, or hearth’s own) and at least one login."
         aside={
           <Switch
             checked={enabled}
@@ -76,7 +83,16 @@ export function AccessSection() {
                 : "Off: nothing is published."
         }
         footerActions={
-          enabled && !setting ? (
+          !enabled && httpsOff && !noUsers ? (
+            <Button
+              size="xs"
+              variant="primary"
+              loading={certs.isPending}
+              onClick={() => certs.mutate("hearth")}
+            >
+              Use hearth’s Certificate
+            </Button>
+          ) : enabled && !setting ? (
             <Button
               size="xs"
               variant="secondary"

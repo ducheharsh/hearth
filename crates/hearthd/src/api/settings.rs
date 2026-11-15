@@ -46,6 +46,7 @@ pub fn routes() -> Router<SharedState> {
         .route("/netbird/down", post(nb_down))
         .route("/netbird/expose", put(nb_expose))
         .route("/gateway/ca.crt", get(ca_cert))
+        .route("/tailscale/certs", put(ts_certs))
         .route("/headscale", get(hs_status).delete(hs_uninstall))
         .route("/headscale/install", post(hs_install))
         .route("/headscale/users", post(hs_user))
@@ -601,21 +602,47 @@ async fn nb_expose(
     Ok(Json(json!({ "ok": true })))
 }
 
-/// Download Caddy's internal root CA so devices trust NetBird HTTPS.
+#[derive(Deserialize)]
+struct Certs {
+    mode: crate::settings::TsCerts,
+}
+
+/// Choose who issues tailnet HTTPS certificates; re-publishes if the gateway is on.
+async fn ts_certs(
+    State(st): State<SharedState>,
+    Json(c): Json<Certs>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let _ops = st.ops.lock().await;
+    let on = {
+        let mut s = st.settings.write().await;
+        s.tailscale_certs = c.mode;
+        store::save(&st.config.state_dir.join("settings.json"), &*s).map_err(internal)?;
+        s.gateway_enabled
+    };
+    if on {
+        gateway::apply(&st).await.map_err(err)?;
+    }
+    Ok(Json(json!({ "ok": true })))
+}
+
+/// Download hearth's certificate (Caddy's internal root CA) so devices trust its HTTPS.
 async fn ca_cert(State(st): State<SharedState>) -> Result<axum::response::Response, ApiError> {
     use axum::http::header;
     use axum::response::IntoResponse as _;
     let bytes = tokio::fs::read(gateway::ca_cert_path(&st))
         .await
         .map_err(|_| {
-            ApiError::NotFound("CA certificate (turn on the gateway with NetBird first)".into())
+            ApiError::NotFound(
+                "hearth's certificate (turn on the gateway with hearth's certificate or NetBird first)"
+                    .into(),
+            )
         })?;
     Ok((
         [
             (header::CONTENT_TYPE, "application/x-x509-ca-cert"),
             (
                 header::CONTENT_DISPOSITION,
-                "attachment; filename=\"hearth-local-ca.crt\"",
+                "attachment; filename=\"hearth-ca.crt\"",
             ),
         ],
         bytes,

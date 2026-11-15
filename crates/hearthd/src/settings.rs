@@ -34,6 +34,19 @@ pub struct Settings {
     pub tunnels: Tunnels,
     /// Also serve the gateway on this machine's NetBird address.
     pub netbird_enabled: bool,
+    /// Who issues the tailnet HTTPS certificates.
+    pub tailscale_certs: TsCerts,
+}
+
+/// HTTPS on the tailnet: Tailscale's own certificates (published with `tailscale serve`), or
+/// hearth's certificate authority for tailnets where HTTPS certificates can't be turned on.
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum TsCerts {
+    #[default]
+    Tailscale,
+    /// Caddy serves HTTPS on the Tailscale IP; each device trusts hearth's CA once.
+    Hearth,
 }
 
 /// Single-app public tunnels (rely on the app's own login).
@@ -93,6 +106,7 @@ impl Default for Settings {
             apps: BTreeMap::new(),
             tunnels: Tunnels::default(),
             netbird_enabled: false,
+            tailscale_certs: TsCerts::default(),
         }
     }
 }

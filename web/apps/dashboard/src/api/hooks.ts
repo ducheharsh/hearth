@@ -25,6 +25,7 @@ import type {
   StorageResponse,
   SystemResponse,
   TailscaleStatus,
+  TsCerts,
 } from "./types";
 
 export const keys = {
@@ -173,6 +174,8 @@ const settingsKeys = [keys.settings, keys.setup, keys.gateway, keys.catalog, key
 export const useSaveSettings = () => useAction((s: Settings) => put<Settings>("/settings", s), settingsKeys, "settings");
 export const useTailscaleAction = () =>
   useAction(({ path, body }: { path: string; body?: unknown }) => (body ? put(`/tailscale/${path}`, body) : post(`/tailscale/${path}`)), settingsKeys, "tailscale");
+export const useTailscaleCerts = () =>
+  useAction((mode: TsCerts) => put("/tailscale/certs", { mode }), [...settingsKeys, ["access"]], "tailscale-certs");
 export const useGatewayAction = () => useAction((path: "enable" | "disable" | "apply") => post(`/gateway/${path}`), settingsKeys, "gateway");
 export const useAddUser = () =>
   useAction(
@@ -345,10 +348,12 @@ export interface AccessLink {
   kind: "tailscale" | "domain" | "netbird" | "local";
   url: string;
   reach: string;
+  /** Uses hearth's own certificate: where each device downloads it. */
+  trust_url: string | null;
 }
 export const useAccess = () =>
   useQuery({
     queryKey: ["access"],
-    queryFn: () => api<{ gateway_enabled: boolean; links: AccessLink[]; qr_svg: string | null }>("/access"),
+    queryFn: () => api<{ gateway_enabled: boolean; links: AccessLink[]; qr_svg: string | null; trust_qr_svg: string | null }>("/access"),
     refetchInterval: 30_000,
   });

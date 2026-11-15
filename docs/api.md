@@ -20,7 +20,7 @@ Conventions:
 | GET | `/system` | Latest host sample + 1 h history |
 | GET | `/events` | Activity feed (`?after=<seq>`) |
 | GET | `/setup` | Setup checklist items with state |
-| GET | `/access` | Addresses that reach the dashboard now (best first) + QR code for the best one |
+| GET | `/access` | Addresses that reach the dashboard now (best first, each with `trust_url` when it uses hearth's certificate) + `qr_svg` / `trust_qr_svg` |
 | GET | `/search?q=` | ⌘K search across apps, Discover, containers, drives, settings |
 
 ## Apps (`apps.rs`)
@@ -122,9 +122,10 @@ Conventions:
 | GET | `/tailscale/serve` | Published ports |
 | POST | `/tailscale/serve/reset` | Clear published ports |
 | POST | `/tailscale/login-server` | Join a custom control server (Headscale) |
+| PUT | `/tailscale/certs` | `{mode: "tailscale" \| "hearth"}`: who issues tailnet HTTPS certificates; re-applies the gateway |
 | GET | `/gateway` | Rendered Caddyfile / compose / Authelia config |
 | POST | `/gateway/enable`, `/gateway/disable`, `/gateway/apply` | Gateway lifecycle |
-| GET | `/gateway/ca.crt` | hearth's internal CA (NetBird HTTPS) |
+| GET | `/gateway/ca.crt` | hearth's CA certificate (hearth-certificate mode and NetBird) |
 | GET, POST | `/gateway/users` | Logins (`role`, `apps`, `disabled`, `totp`); POST creates (or changes a password) |
 | PUT | `/gateway/users/{name}` | Edit `{display_name, email, role, disabled, apps, password?}`; `apps: null` = every app |
 | DELETE | `/gateway/users/{name}` | Remove a login (refused if it would leave no active admin) |

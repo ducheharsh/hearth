@@ -20,6 +20,12 @@ buttons: (1) connect Tailscale, (2) turn on MagicDNS and HTTPS Certificates for 
 Tailscale admin console, (3) create a login, (4) turn on the gateway. Port 9000 itself is never
 reachable from other devices; the gateway publishes the dashboard on 9443 behind your login.
 
+**Can't turn on HTTPS Certificates** (a work tailnet, for example)? Use **hearth's own certificate**
+instead (step 2 has a button for it). The address bar then shows *First, install hearth's
+certificate on each device* with **Install on Phone** (a QR code), **This Mac** (download) and
+**How?** (steps for iPhone/iPad, Android, Mac and Windows). Trust it once per device; until then
+browsers show a warning.
+
 **Your Apps** comes next. Below it, a health card (collapsible; it remembers your choice) lists anything that needs attention (setup steps, apps that were
 rolled back, available updates, drives offline), with radial gauges for memory, CPU and disk, 1-hour
 charts, your app launcher, top memory users and the activity timeline.
@@ -121,7 +127,8 @@ The left tree jumps to any group; the group in view is highlighted.
 
 - **Setup**: a checklist of what's left (Tailscale, logins, gateway, drives, backups).
 - **General**: name, time zone, app directory.
-- **Network**: Tailscale (connect, rename, HTTPS, published ports, custom control server),
+- **Network**: Tailscale (connect, rename, HTTPS, **Certificates**: Tailscale's or hearth's own,
+  published ports, custom control server),
   NetBird (connect, serve apps with hearth's certificate authority), Headscale (install wizard, users,
   keys, join this Mac).
 - **Users**: people, roles and per-app access (below).

@@ -131,7 +131,7 @@ const fn default_true() -> bool {
 }
 
 /// Ports hearth itself or the base stack occupies; apps may not claim them.
-pub const RESERVED_PORTS: &[u16] = &[53, 9091, 9000];
+pub const RESERVED_PORTS: &[u16] = &[53, 9000, 9091, 9444];
 
 impl AppManifest {
     /// Parse and validate a manifest from YAML.

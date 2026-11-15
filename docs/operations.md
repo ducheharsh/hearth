@@ -62,6 +62,17 @@ Open `http://127.0.0.1:9000`. From another device before the gateway is on:
 `ssh -L 9000:localhost:9000 <mac>`. Then in Settings: connect Tailscale, add a login, and turn on the
 gateway, and the dashboard and apps are reachable over HTTPS on your tailnet.
 
+### Tailnets without HTTPS certificates
+
+Some tailnets (often a work one) can't turn on HTTPS Certificates. In **Settings → Network →
+Tailscale → Certificates**, choose **hearth's own certificate** (or click *Use hearth's Certificate*
+on the Gateway page). Caddy then serves HTTPS on your Mac's Tailscale IP with hearth's CA, and
+`tailscale serve` isn't used. MagicDNS must still be on.
+
+Each device trusts the certificate once. The Overview address bar shows how: scan the QR code on a
+phone, or download it from `http://<tailscale-ip>:9444` on any device in the tailnet. The certificate
+is named "Caddy Local Authority". Port 9444 is reserved for this.
+
 ## Configuration
 
 `hearth.toml` holds only bootstrap settings; everything else is set from the dashboard and stored in
@@ -87,7 +98,8 @@ gateway, and the dashboard and apps are reachable over HTTPS on your tailnet.
 ├── alerts.json          alert settings
 ├── apps/<id>/           compose.yml, hearth.override.yml, [hearth.pin.yml], .env, data/
 ├── custom/              your own app definitions
-├── gateway/             Caddyfile, compose, Authelia config, users.json, authelia.env, DB
+├── gateway/             Caddyfile, compose, Authelia config, users.json, authelia.env, DB,
+│                        caddy-data/ (hearth's CA), public/hearth-ca.crt
 ├── volumes/             role links (vault, media, backups) → the attached drives
 ├── secrets/             backup.json, alerts.json, cloudflare, ngrok… (all 0600)
 ├── headscale/           if installed

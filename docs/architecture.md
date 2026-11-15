@@ -104,6 +104,13 @@ alert dispatcher, which filters by level and de-duplicates.
   write-only through the API, with two deliberate exceptions: the 2FA secret during enrollment, and
   the backup recovery password (`GET /api/backups/password`, so it can be shown again). Turn on
   *Lock down the dashboard* (`require_remote_user`) so the API itself sits behind Authelia.
+- **HTTPS on the tailnet** comes from Tailscale's certificates (`tailscale serve` proxies to Caddy on
+  loopback) or, where a tailnet can't issue them, from **hearth's own CA** (`tailscale_certs: hearth`).
+  Then Caddy terminates TLS itself with `tls internal` on `ca_port(port)` and compose publishes those
+  ports on the **Tailscale IP only** (never `0.0.0.0`), the same way `NetBird` works. The CA's public
+  root is copied to `gateway/public/` and served for download on `<ip>:9444`; its private key never
+  leaves `gateway/caddy-data/`. Caddy runs with `auto_https disable_redirects` (not `off`, which
+  silently disables `tls internal`).
 - App data is never deleted by hearth: remove stops containers and keeps `<state>/apps/<id>/data`.
 - Two-factor (TOTP) is enrolled through Authelia's own storage CLI; hearth verifies a code before
   marking a login enrolled.

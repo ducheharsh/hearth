@@ -262,7 +262,11 @@ export interface Settings {
   apps: Record<string, AppOverride>;
   tunnels: { funnel_app: string | null; ngrok_app: string | null; ngrok_domain: string | null };
   netbird_enabled: boolean;
+  /** Who issues tailnet HTTPS certificates: Tailscale, or hearth's own CA. */
+  tailscale_certs: TsCerts;
 }
+
+export type TsCerts = "tailscale" | "hearth";
 
 export interface GatewayRoute {
   id: string;

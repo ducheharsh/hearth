@@ -116,18 +116,27 @@ async fn setup(State(st): State<SharedState>) -> Json<Vec<Check>> {
             },
             "settings",
         ),
-        c(
-            "https",
-            "Tailscale HTTPS certificates",
-            ts.https_enabled && ts.magic_dns,
-            false,
-            if ts.https_enabled && ts.magic_dns {
-                "MagicDNS and HTTPS are on.".into()
-            } else {
-                "Turn on MagicDNS and HTTPS Certificates at login.tailscale.com/admin/dns.".into()
-            },
-            "settings",
-        ),
+        {
+            let own = settings.tailscale_certs == crate::settings::TsCerts::Hearth;
+            let ok = ts.magic_dns && (ts.https_enabled || own);
+            c(
+                "https",
+                "Tailscale HTTPS certificates",
+                ok,
+                false,
+                match (ok, own) {
+                    (true, true) => {
+                        "Using hearth’s own certificate. Install it once on each device.".into()
+                    }
+                    (true, false) => "MagicDNS and HTTPS are on.".into(),
+                    (false, true) => {
+                        "Turn on MagicDNS at login.tailscale.com/admin/dns (hearth’s certificate is for that name).".into()
+                    }
+                    (false, false) => "Turn on MagicDNS and HTTPS Certificates at login.tailscale.com/admin/dns, or use hearth’s own certificate.".into(),
+                },
+                "settings",
+            )
+        },
         c(
             "vault",
             "Storage drive attached",
@@ -181,11 +190,12 @@ async fn setup(State(st): State<SharedState>) -> Json<Vec<Check>> {
     ])
 }
 
-/// Every address that reaches the dashboard right now, plus a QR code for the best one.
+/// Every address that reaches the dashboard right now, plus QR codes for the best one (and
+/// for installing hearth's certificate, when it uses one).
 async fn access(State(st): State<SharedState>) -> Json<serde_json::Value> {
-    let (gateway, domain, nb_on) = {
+    let (gateway, domain) = {
         let s = st.settings.read().await;
-        (s.gateway_enabled, s.domain.clone(), s.netbird_enabled)
+        (s.gateway_enabled, s.domain.clone())
     };
     let ts = {
         let t = st.tailscale.read().await;
@@ -194,32 +204,32 @@ async fn access(State(st): State<SharedState>) -> Json<serde_json::Value> {
             .flatten()
     };
     let ts = st.config.ts_host.clone().or(ts);
-    let netbird = if nb_on {
-        hearth_host::netbird::status()
-            .await
-            .ok()
-            .filter(|s| s.connected)
-            .and_then(|s| s.fqdn)
-    } else {
-        None
-    };
+    let netbird = crate::gateway::netbird_target(&st).await;
+    let ts_ca = crate::gateway::tailnet_ca_target(&st).await;
     let local = format!("http://{}", st.config.listen);
-    let links = hearth_gateway::access_links(
-        gateway,
-        ts.as_deref(),
-        domain.as_deref(),
-        netbird.as_deref(),
-        &local,
-    );
-    let qr = links
-        .first()
-        .filter(|l| l.kind != "local")
-        .and_then(|l| qrcode::QrCode::new(l.url.as_bytes()).ok())
-        .map(|q| {
+    let links = hearth_gateway::access_links(&hearth_gateway::Reach {
+        gateway_enabled: gateway,
+        ts_host: ts.as_deref(),
+        ts_ca_ip: ts_ca.as_ref().map(|t| t.ip.as_str()),
+        domain: domain.as_deref(),
+        netbird: netbird.as_ref(),
+        local: &local,
+    });
+    let qr = |url: &str| {
+        qrcode::QrCode::new(url.as_bytes()).ok().map(|q| {
             q.render::<qrcode::render::svg::Color<'_>>()
                 .min_dimensions(176, 176)
                 .quiet_zone(true)
                 .build()
-        });
-    Json(serde_json::json!({ "gateway_enabled": gateway, "links": links, "qr_svg": qr }))
+        })
+    };
+    let best = links.first().filter(|l| l.kind != "local");
+    let trust_qr = best.and_then(|l| l.trust_url.as_deref()).and_then(qr);
+    let qr = best.and_then(|l| qr(&l.url));
+    Json(serde_json::json!({
+        "gateway_enabled": gateway,
+        "links": links,
+        "qr_svg": qr,
+        "trust_qr_svg": trust_qr,
+    }))
 }

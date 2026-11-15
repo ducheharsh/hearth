@@ -36,7 +36,9 @@ import {
   useSettings,
   useTailscale,
   useTailscaleAction,
+  useTailscaleCerts,
 } from "../../api/hooks";
+import type { TailscaleStatus, TsCerts } from "../../api/types";
 
 export function NetworkSection() {
   return (
@@ -88,6 +90,104 @@ function Confirm({
         </div>
       </Dialog>
     </Dialog.Root>
+  );
+}
+
+const CERTS: Record<TsCerts, string> = {
+  tailscale: "Tailscale (recommended)",
+  hearth: "hearth’s own certificate",
+};
+
+/** HTTPS on the tailnet: Tailscale's certificates, or hearth's CA when those can't be turned on. */
+function HttpsRows({ ts }: { ts: TailscaleStatus }) {
+  const settings = useSettings();
+  const certs = useTailscaleCerts();
+  const mode = settings.data?.tailscale_certs ?? "tailscale";
+  const own = mode === "hearth";
+  const needs = own ? !ts.magic_dns : !ts.magic_dns || !ts.https_enabled;
+  return (
+    <>
+      <SettingRow
+        label="HTTPS for apps"
+        description={
+          own
+            ? "hearth’s certificate is issued for your MagicDNS name, so MagicDNS must be on."
+            : "Needs MagicDNS and HTTPS Certificates enabled for your tailnet."
+        }
+      >
+        <span className="flex flex-wrap items-center gap-3 text-sm">
+          <span className="inline-flex items-center gap-1.5">
+            <StatusDot
+              tone={ts.magic_dns ? "success" : "warning"}
+              label="MagicDNS"
+            />{" "}
+            MagicDNS
+          </span>
+          {own ? null : (
+            <span className="inline-flex items-center gap-1.5">
+              <StatusDot
+                tone={ts.https_enabled ? "success" : "warning"}
+                label="HTTPS"
+              />{" "}
+              HTTPS
+            </span>
+          )}
+          {needs ? (
+            <LinkButton
+              href="https://login.tailscale.com/admin/dns"
+              external
+              size="xs"
+              variant="secondary"
+              icon={<ArrowSquareOutIcon />}
+            >
+              Enable
+            </LinkButton>
+          ) : null}
+        </span>
+      </SettingRow>
+      <SettingRow
+        label="Certificates"
+        description={
+          own
+            ? "hearth issues the HTTPS certificates. Install hearth’s certificate once on each device; the address bar on Overview shows how."
+            : ts.https_enabled
+              ? "Tailscale issues trusted certificates. Nothing to install."
+              : "Can’t turn on HTTPS Certificates (for example, a work tailnet)? Use hearth’s own certificate instead."
+        }
+      >
+        <Select
+          aria-label="Certificates"
+          className="w-56"
+          value={mode}
+          items={CERTS}
+          disabled={certs.isPending}
+          onChange={(v) => v !== mode && certs.mutate(v as TsCerts)}
+        />
+      </SettingRow>
+      {own ? (
+        <SettingRow
+          label="Trust on this Mac"
+          description="Open the file, add it to Keychain Access, then set it to Always Trust."
+        >
+          <LinkButton
+            href="/api/gateway/ca.crt"
+            size="sm"
+            icon={<DownloadSimpleIcon />}
+          >
+            Download Certificate
+          </LinkButton>
+        </SettingRow>
+      ) : null}
+      {certs.error ? (
+        <div className="py-3">
+          <Banner
+            variant="error"
+            title="Couldn’t switch certificates"
+            description={certs.error.message}
+          />
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -194,38 +294,7 @@ function TailscaleGroup() {
       </SettingRow>
       {running ? (
         <>
-          <SettingRow
-            label="HTTPS for apps"
-            description="Needs MagicDNS and HTTPS Certificates enabled for your tailnet."
-          >
-            <span className="flex items-center gap-3 text-sm">
-              <span className="inline-flex items-center gap-1.5">
-                <StatusDot
-                  tone={ts.magic_dns ? "success" : "warning"}
-                  label="MagicDNS"
-                />{" "}
-                MagicDNS
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <StatusDot
-                  tone={ts.https_enabled ? "success" : "warning"}
-                  label="HTTPS"
-                />{" "}
-                HTTPS
-              </span>
-              {!ts.magic_dns || !ts.https_enabled ? (
-                <LinkButton
-                  href="https://login.tailscale.com/admin/dns"
-                  external
-                  size="xs"
-                  variant="secondary"
-                  icon={<ArrowSquareOutIcon />}
-                >
-                  Enable
-                </LinkButton>
-              ) : null}
-            </span>
-          </SettingRow>
+          <HttpsRows ts={ts} />
           <SettingRow
             label="Machine name"
             description="Changes every app’s address (name.tailnet.ts.net)."
