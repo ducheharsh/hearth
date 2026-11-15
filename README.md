@@ -20,6 +20,7 @@
 </p>
 
 <p align="center">
+  <a href="#demo">Demo</a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="#features">Features</a> ·
   <a href="#packs">Packs</a> ·
@@ -29,8 +30,15 @@
 
 <br>
 
+<h2 id="demo" align="center">See it in a minute</h2>
+
 <p align="center">
-  <img alt="hearth overview" src="docs/assets/screenshots/overview.png" width="900">
+  <a href="https://github.com/ducheharsh/hearth/blob/main/docs/assets/demo/hearth-demo.mp4">
+    <img alt="Watch the 1-minute hearth demo" src="docs/assets/demo/poster.jpg" width="900">
+  </a>
+  <br>
+  <sub>Your server's address, the App Store and Packs, ⌘K search, and users with signed-in devices.
+  <a href="docs/assets/demo/hearth-demo.mp4">Download the MP4</a> (8 MB).</sub>
 </p>
 
 ## Why hearth
