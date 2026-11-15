@@ -1,0 +1,25 @@
+[package]
+name = "hearth-host"
+description = "Adapters to the real machine: host metrics, Docker engine, docker compose, Tailscale."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+hearth-core.workspace = true
+bollard.workspace = true
+sysinfo.workspace = true
+tokio.workspace = true
+futures-util.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+plist.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

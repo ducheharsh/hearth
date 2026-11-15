@@ -1,0 +1,6 @@
+/target
+hearth.toml
+.DS_Store
+node_modules/
+web/apps/*/dist/
+*.tsbuildinfo

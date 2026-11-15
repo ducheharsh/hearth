@@ -1,0 +1,3 @@
+[build]
+# Saves ~1 GB of incremental cache on small disks.
+incremental = false

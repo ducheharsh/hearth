@@ -1,0 +1,21 @@
+id: uptime-kuma
+name: Uptime Kuma
+description: Monitors your services and alerts you when something goes down.
+category: monitoring
+website: https://github.com/louislam/uptime-kuma
+repo: louislam/uptime-kuma
+docker_hub: louislam/uptime-kuma
+featured: true
+editors_note: "Know the moment anything goes down, with beautiful status pages."
+port: 3002
+upstream: { service: uptime-kuma, port: 3001 }
+resources: { ram_mb: 150 }
+auth:
+  exempt_paths: ["/api/push/*", "/api/badge/*"]
+compose: |
+  services:
+    uptime-kuma:
+      image: louislam/uptime-kuma:2
+      restart: unless-stopped
+      volumes:
+        - ${APP_DATA}:/app/data

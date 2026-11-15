@@ -1,0 +1,25 @@
+id: n8n
+name: n8n
+description: Workflow automation, like a self-hosted Zapier.
+category: automation
+website: https://n8n.io
+repo: n8n-io/n8n
+docker_hub: n8nio/n8n
+port: 5678
+upstream: { service: n8n, port: 5678 }
+resources: { ram_mb: 300 }
+auth:
+  exempt_paths: ["/webhook/*", "/webhook-test/*", "/webhook-waiting/*", "/form/*"]
+compose: |
+  services:
+    n8n:
+      image: docker.n8n.io/n8nio/n8n:latest
+      restart: unless-stopped
+      environment:
+        GENERIC_TIMEZONE: ${TZ}
+        TZ: ${TZ}
+        N8N_HOST: ${TS_HOST}
+        N8N_EDITOR_BASE_URL: https://${TS_HOST}:5678/
+        WEBHOOK_URL: https://${TS_HOST}:5678/
+      volumes:
+        - ${APP_DATA}:/home/node/.n8n

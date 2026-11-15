@@ -1,0 +1,10 @@
+{
+  "name": "hearth-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter @hearth/dashboard dev",
+    "build": "pnpm -r typecheck && pnpm --filter @hearth/dashboard build",
+    "typecheck": "pnpm -r typecheck"
+  }
+}

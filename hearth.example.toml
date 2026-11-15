@@ -1,0 +1,7 @@
+# Copy to hearth.toml. Bootstrap only: everything else is configured from the
+# Settings page and stored in <state_dir>/settings.json.
+
+listen = "127.0.0.1:9000"        # keep on loopback; the gateway is the way in
+catalog_dir = "catalog"          # curated one-click apps (+ icons/)
+state_dir = "~/.hearth"          # settings, apps, gateway, volumes, discover cache
+# ts_host = "m1.tail1234.ts.net" # override the auto-detected Tailscale name

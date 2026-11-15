@@ -1,0 +1,26 @@
+id: vaultwarden
+name: Vaultwarden
+description: Password manager compatible with all Bitwarden apps and browser extensions.
+category: security
+website: https://github.com/dani-garcia/vaultwarden
+repo: dani-garcia/vaultwarden
+docker_hub: vaultwarden/server
+featured: true
+editors_note: "The password manager every self-hoster should run first. Works with all Bitwarden apps."
+port: 8081
+upstream: { service: vaultwarden, port: 80 }
+resources: { ram_mb: 60 }
+auth:
+  # Bitwarden apps can't do the Authelia login; they use Vaultwarden's own auth.
+  exempt_paths: ["/api/*", "/identity/*", "/notifications/*", "/icons/*", "/events/*"]
+compose: |
+  services:
+    vaultwarden:
+      image: vaultwarden/server:latest
+      restart: unless-stopped
+      environment:
+        TZ: ${TZ}
+        DOMAIN: https://${TS_HOST}:8081
+        SIGNUPS_ALLOWED: "true"
+      volumes:
+        - ${APP_DATA}:/data

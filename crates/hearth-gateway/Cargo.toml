@@ -1,0 +1,16 @@
+[package]
+name = "hearth-gateway"
+description = "Renders the Caddy + Authelia gateway (Caddyfile and compose) from installed apps."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+hearth-core.workspace = true
+serde.workspace = true
+argon2.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

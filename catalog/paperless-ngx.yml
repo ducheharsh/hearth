@@ -1,0 +1,35 @@
+id: paperless-ngx
+name: Paperless-ngx
+description: Scan, OCR and full-text search your documents and bills.
+category: productivity
+website: https://docs.paperless-ngx.com
+repo: paperless-ngx/paperless-ngx
+port: 8000
+upstream: { service: paperless, port: 8000 }
+resources: { ram_mb: 700, needs_vault: true, vault_gb: 20 }
+auth:
+  exempt_paths: ["/api/*"]
+compose: |
+  services:
+    paperless:
+      image: ghcr.io/paperless-ngx/paperless-ngx:latest
+      restart: unless-stopped
+      depends_on: [paperless-redis]
+      environment:
+        PAPERLESS_TIME_ZONE: ${TZ}
+        PAPERLESS_REDIS: redis://paperless-redis:6379
+        PAPERLESS_URL: https://${TS_HOST}:8000
+        PAPERLESS_SECRET_KEY: ${APP_SECRET}
+        PAPERLESS_WEBSERVER_WORKERS: 1
+        PAPERLESS_TASK_WORKERS: 1
+        PAPERLESS_THREADS_PER_WORKER: 1
+      volumes:
+        - ${APP_DATA}/data:/usr/src/paperless/data
+        - ${VAULT}/paperless/media:/usr/src/paperless/media
+        - ${VAULT}/paperless/consume:/usr/src/paperless/consume
+        - ${VAULT}/paperless/export:/usr/src/paperless/export
+    paperless-redis:
+      image: redis:7-alpine
+      restart: unless-stopped
+      volumes:
+        - ${APP_DATA}/redis:/data

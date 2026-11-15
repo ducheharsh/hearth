@@ -1,0 +1,15 @@
+[package]
+name = "hearth-search"
+description = "In-process full-text search (Tantivy): BM25 ranking, typo tolerance, search-as-you-type."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+tantivy.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

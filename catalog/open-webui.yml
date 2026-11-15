@@ -1,0 +1,20 @@
+id: open-webui
+name: Open WebUI
+description: ChatGPT-style interface for local models served by native Ollama (GPU).
+category: ai
+website: https://openwebui.com
+repo: open-webui/open-webui
+port: 3004
+upstream: { service: open-webui, port: 8080 }
+resources: { ram_mb: 600 }
+compose: |
+  services:
+    open-webui:
+      image: ghcr.io/open-webui/open-webui:main
+      restart: unless-stopped
+      environment:
+        TZ: ${TZ}
+        OLLAMA_BASE_URL: http://host.docker.internal:11434
+        WEBUI_URL: https://${TS_HOST}:3004
+      volumes:
+        - ${APP_DATA}:/app/backend/data

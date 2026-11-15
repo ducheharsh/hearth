@@ -1,0 +1,76 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+
+[workspace.dependencies]
+# internal
+hearth-core = { path = "crates/hearth-core" }
+hearth-host = { path = "crates/hearth-host" }
+hearth-gateway = { path = "crates/hearth-gateway" }
+hearth-search = { path = "crates/hearth-search" }
+
+# async + web
+tokio = { version = "1.54", features = ["macros", "rt-multi-thread", "process", "signal", "fs", "sync", "time"] }
+axum = { version = "0.8", features = ["ws"] }
+tower-http = { version = "0.7", features = ["trace", "timeout"] }
+futures-util = "0.3"
+
+# host integrations
+bollard = "0.21"
+sysinfo = "0.40"
+
+# http client (Cloudflare API), password hashing (Authelia users)
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls", "http2"] }
+argon2 = "0.6"
+
+# embedded full-text search (BM25, fuzzy, prefix)
+tantivy = { version = "0.27", default-features = false }
+
+# embedded web UI
+rust-embed = { version = "8.14", features = ["mime-guess"] }
+
+# data
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml_ng = "0.10"
+plist = "1.10"
+toml = "1"
+
+# errors, logging, cli
+thiserror = "2"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+clap = { version = "4.6", features = ["derive", "env"] }
+
+# test
+tempfile = "3"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "warn"
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+
+[profile.dev]
+# Smaller debug info keeps target/ lean on small disks.
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

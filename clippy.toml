@@ -1,0 +1,1 @@
+doc-valid-idents = ["NetBird", "WireGuard", "OrbStack", "MagicDNS", "Headscale", "Tailscale", "Authelia", "Cloudflare", ".."]

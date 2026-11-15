@@ -1,0 +1,22 @@
+id: syncthing
+name: Syncthing
+description: Continuous peer-to-peer file sync between your devices.
+category: storage
+website: https://syncthing.net
+repo: syncthing/syncthing
+docker_hub: syncthing/syncthing
+port: 8384
+upstream: { service: syncthing, port: 8384 }
+resources: { ram_mb: 100, needs_vault: true, vault_gb: 50 }
+compose: |
+  services:
+    syncthing:
+      image: syncthing/syncthing:latest
+      restart: unless-stopped
+      hostname: hearth
+      ports:
+        - "22000:22000/tcp"
+        - "22000:22000/udp"
+        - "21027:21027/udp"
+      volumes:
+        - ${VAULT}/sync:/var/syncthing

@@ -1,0 +1,42 @@
+id: immich
+name: Immich
+description: Google Photos replacement with mobile backup. Face search disabled to fit 8 GB.
+category: media
+website: https://immich.app
+repo: immich-app/immich
+featured: true
+editors_note: "The best Google Photos replacement. Automatic backup from your phone."
+port: 2283
+upstream: { service: immich-server, port: 2283 }
+resources: { ram_mb: 1300, needs_vault: true, vault_gb: 300 }
+auth:
+  exempt_paths: ["/api/*", "/.well-known/immich"]
+compose: |
+  services:
+    immich-server:
+      image: ghcr.io/immich-app/immich-server:v2
+      restart: unless-stopped
+      depends_on: [immich-redis, immich-postgres]
+      environment:
+        TZ: ${TZ}
+        DB_HOSTNAME: immich-postgres
+        DB_USERNAME: immich
+        DB_PASSWORD: ${APP_SECRET}
+        DB_DATABASE_NAME: immich
+        REDIS_HOSTNAME: immich-redis
+      volumes:
+        - ${VAULT}/photos:/data
+    immich-redis:
+      image: docker.io/valkey/valkey:8
+      restart: unless-stopped
+    immich-postgres:
+      image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
+      restart: unless-stopped
+      shm_size: 128mb
+      environment:
+        POSTGRES_USER: immich
+        POSTGRES_PASSWORD: ${APP_SECRET}
+        POSTGRES_DB: immich
+        POSTGRES_INITDB_ARGS: --data-checksums
+      volumes:
+        - ${APP_DATA}/postgres:/var/lib/postgresql/data

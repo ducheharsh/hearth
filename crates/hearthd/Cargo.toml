@@ -1,0 +1,36 @@
+[package]
+name = "hearthd"
+description = "hearth daemon: HTTP API + dashboard for managing a self-hosted machine."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+hearth-core.workspace = true
+hearth-host.workspace = true
+hearth-gateway.workspace = true
+hearth-search.workspace = true
+tokio.workspace = true
+axum.workspace = true
+tower-http.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+clap.workspace = true
+rust-embed.workspace = true
+serde_yaml_ng.workspace = true
+sysinfo.workspace = true
+reqwest.workspace = true
+futures-util.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+tower = { version = "0.5", features = ["util"] }
+
+[lints]
+workspace = true
