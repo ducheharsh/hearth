@@ -152,6 +152,14 @@ email, password reset, role, app access, two-factor, disabling and deleting.
   can't open the dashboard.
 - **Disable sign-in** blocks a login without deleting it.
 
+**Signed-in devices** lists every device that's signed in right now, grouped by person: the
+browser and device ("Safari on iPhone"), the tailnet device name when hearth can see it, which apps it
+used, and when it was last active. The device you're using is marked *This device*. **Sign Out** ends
+that device's session immediately; **Sign Out All** does it for one person's devices and **Sign Out
+Everyone** for everybody (they sign in again, with 2FA; logins aren't changed). Disabling a user,
+deleting them or setting a new password also signs them out everywhere. A device shows up once it
+opens an app or the dashboard after signing in.
+
 **App access** shows, per installed app, who can open it. Access is enforced by the gateway: Authelia
 tells Caddy who signed in and their groups, and Caddy shows "You don't have access" to anyone not
 allowed. Apps that are public (no sign-in) can't be limited. Changes apply immediately.

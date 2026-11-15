@@ -19,6 +19,7 @@ mod history;
 mod packs;
 mod search;
 mod service;
+mod sessions;
 mod settings;
 mod state;
 mod storage;
@@ -156,6 +157,7 @@ async fn main() -> anyhow::Result<()> {
     let listen = config.listen;
     let (alert_tx, alert_rx) = tokio::sync::mpsc::unbounded_channel();
     let alert_settings = alerts::load_settings(&config.state_dir);
+    let sessions_store = sessions::load(&config.state_dir);
     let state_dir_for_history = config.state_dir.clone();
     let state = Arc::new(AppState {
         compose: ComposeRunner::new(config.apps_dir()),
@@ -181,6 +183,7 @@ async fn main() -> anyhow::Result<()> {
         gateway_job: RwLock::new(None),
         packs: pack_list,
         pack_jobs: RwLock::new(packs::Jobs::default()),
+        sessions: RwLock::new(sessions_store),
         alert_tx,
         ops: Mutex::new(()),
     });
@@ -196,6 +199,9 @@ async fn main() -> anyhow::Result<()> {
     tokio::spawn(alerts::run_dispatcher(state.clone(), alert_rx));
     tokio::spawn(alerts::run_monitors(state.clone()));
     tokio::spawn(alerts::run_login_watch(state.clone()));
+    tokio::spawn(sessions::run_receiver(state.clone()));
+    tokio::spawn(sessions::run_saver(state.clone()));
+    tokio::spawn(gateway::reconcile(state.clone()));
 
     let listener = tokio::net::TcpListener::bind(listen)
         .await

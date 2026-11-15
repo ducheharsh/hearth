@@ -31,6 +31,7 @@ import type {
   GatewayUser,
   UserRole as Role,
 } from "../../api/types";
+import { SignedInDevices } from "./devices";
 import { TwoFactorDialog } from "./two-factor";
 
 const ROLES: {
@@ -163,6 +164,8 @@ export function UsersSection() {
           </ul>
         )}
       </SettingsGroup>
+
+      <SignedInDevices />
 
       <AppAccess users={list} apps={installed} />
 

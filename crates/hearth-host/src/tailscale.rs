@@ -4,7 +4,7 @@
 use std::collections::BTreeMap;
 use std::time::Duration;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{CommandError, run};
 
@@ -77,6 +77,41 @@ fn parse_status(raw: &str) -> Result<TailscaleStatus, serde_json::Error> {
             .unwrap_or(false),
         https_enabled: v["CertDomains"].as_array().is_some_and(|a| !a.is_empty()),
     })
+}
+
+/// A device on the tailnet (this Mac included).
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Peer {
+    pub name: String,
+    pub os: String,
+    pub ips: Vec<String>,
+}
+
+/// Every device on the tailnet, for naming where a sign-in came from.
+pub async fn peers() -> Result<Vec<Peer>, TailscaleError> {
+    let raw = run("tailscale", &["status", "--json"], &[]).await?;
+    Ok(parse_peers(&raw)?)
+}
+
+fn parse_peers(raw: &str) -> Result<Vec<Peer>, serde_json::Error> {
+    let v: serde_json::Value = serde_json::from_str(raw)?;
+    let one = |p: &serde_json::Value| Peer {
+        name: p["HostName"].as_str().unwrap_or_default().to_owned(),
+        os: p["OS"].as_str().unwrap_or_default().to_owned(),
+        ips: p["TailscaleIPs"]
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(|x| x.as_str().map(str::to_owned))
+                    .collect()
+            })
+            .unwrap_or_default(),
+    };
+    let mut out = vec![one(&v["Self"])];
+    if let Some(m) = v["Peer"].as_object() {
+        out.extend(m.values().map(one));
+    }
+    Ok(out)
 }
 
 /// Start an interactive login in the background. The URL to open shows up as
@@ -223,6 +258,16 @@ fn parse_serve(raw: &str) -> Result<BTreeMap<u16, String>, serde_json::Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn peers_include_self_and_others() {
+        let raw = r#"{"Self":{"HostName":"m1","OS":"macOS","TailscaleIPs":["100.64.0.1"]},
+            "Peer":{"k":{"HostName":"iphone","OS":"iOS","TailscaleIPs":["100.64.0.2","fd7a::2"]}}}"#;
+        let p = parse_peers(raw).expect("parse");
+        assert_eq!(p.len(), 2);
+        assert_eq!(p[1].name, "iphone");
+        assert_eq!(p[1].ips[0], "100.64.0.2");
+    }
 
     #[test]
     fn parses_self_node_and_tailnet_features() {

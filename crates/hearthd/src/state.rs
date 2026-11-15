@@ -75,6 +75,7 @@ pub struct AppState {
     pub gateway_job: RwLock<Option<crate::gateway::Job>>,
     pub packs: Vec<hearth_core::pack::Pack>,
     pub pack_jobs: RwLock<crate::packs::Jobs>,
+    pub sessions: RwLock<crate::sessions::Store>,
     pub alert_tx: tokio::sync::mpsc::UnboundedSender<crate::events::Event>,
     /// Serialises installs, gateway applies and other mutations.
     pub ops: Mutex<()>,

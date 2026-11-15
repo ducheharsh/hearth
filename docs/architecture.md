@@ -100,6 +100,15 @@ alert dispatcher, which filters by level and de-duplicates.
   checks `Remote-User`/`Remote-Groups` (set by Authelia, overwriting client values) and returns 403 to
   anyone not allowed. The hearth dashboard is admins-only, and with *Lock down the dashboard* hearthd
   itself also requires the `admins` group.
+- **Identity headers** (`Remote-User`, `Remote-Groups`, `Remote-Email`, `Remote-Name`) are removed
+  from every incoming request (unprotected sites and exempt paths included) before Authelia sets
+  them, inside one ordered `route`, so neither apps nor hearth can be fooled by a client sending them.
+- **Signed-in devices** (`sessions.rs`): Authelia keeps sessions in the gateway's Redis
+  (`authelia-session:<cookie>`, memory only), the source of truth for who is signed in; deleting a key
+  signs a device out at once. Values are encrypted, so names come from Caddy, which streams JSON
+  access logs over loopback to hearthd (`listen port + 1`) with the user, the session cookie, the
+  browser and whether the login let it in (`gate`/`authed` vars). hearthd keeps only a SHA-256 of the
+  cookie (`sessions.json`). Disabling, deleting or re-passwording a user signs them out everywhere.
 - Secrets (`<state>/secrets/`, `gateway/authelia.env`) are written `0600`. Tokens and passwords are
   write-only through the API, with two deliberate exceptions: the 2FA secret during enrollment, and
   the backup recovery password (`GET /api/backups/password`, so it can be shown again). Turn on

@@ -111,6 +111,14 @@ Conventions:
 | GET | `/discover/app/{slug}` | Detail page data |
 | GET | `/discover/app/{slug}/preview` | Cached GitHub social card |
 
+## Signed-in devices (`sessions.rs`)
+
+| Method | Path | |
+|---|---|---|
+| GET | `/sessions` | `{running, sessions: [{id, user, display_name, device, node, first_seen, last_seen, apps, current}]}`, newest first |
+| DELETE | `/sessions/{id}` | Sign out one device (404 if already gone) |
+| POST | `/sessions/sign-out` | `{user?}`: sign out one person's devices, or everyone → `{signed_out}` |
+
 ## Settings, access and networks (`settings.rs`)
 
 | Method | Path | |

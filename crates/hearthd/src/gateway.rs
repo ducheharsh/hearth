@@ -128,8 +128,11 @@ pub async fn preview(st: &SharedState) -> Preview {
     }
     let ts = st.ts_host().await;
     Preview {
-        caddyfile: render_caddyfile(&r, domain.as_deref())
-            + &render_open_sites(&open)
+        caddyfile: render_caddyfile(
+            &r,
+            domain.as_deref(),
+            Some(crate::sessions::log_addr(st).port()),
+        ) + &render_open_sites(&open)
             + &render_ca_sites(&r, &targets),
         compose: render_compose(&r, &open, &targets),
         authelia: render_authelia_config(
@@ -193,6 +196,17 @@ pub async fn refresh(st: &SharedState) -> anyhow::Result<()> {
             .context("reloading Caddy with the new access rules")?;
     }
     Ok(())
+}
+
+/// Run `redis-cli` in the gateway's Redis (Authelia's sessions).
+pub async fn redis(st: &AppState, args: &[&str]) -> anyhow::Result<String> {
+    let mut cmd = vec!["redis-cli"];
+    cmd.extend_from_slice(args);
+    let env = ComposeEnv::default().with("TS_HOST", st.ts_host().await);
+    project(st)
+        .exec(&env, "redis", &cmd)
+        .await
+        .context("talking to the gateway's session store")
 }
 
 /// Progress of turning the gateway on, shown step by step in Settings.
@@ -451,6 +465,29 @@ pub async fn disable(st: &SharedState) -> anyhow::Result<()> {
     )
     .await;
     Ok(())
+}
+
+/// On startup: when the gateway is on but hearth now renders it differently (after an
+/// upgrade), apply once so new pieces (like the session store) take effect.
+pub async fn reconcile(st: SharedState) {
+    // Let the Tailscale poller fill in the machine name first.
+    tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+    if !st.settings.read().await.gateway_enabled || st.ts_host().await == "localhost" {
+        return;
+    }
+    let p = preview(&st).await;
+    let d = dir(&st);
+    let same =
+        |file: &str, body: &str| std::fs::read_to_string(d.join(file)).is_ok_and(|x| x == body);
+    if same("Caddyfile", &p.caddyfile)
+        && same("compose.yml", &p.compose)
+        && same("authelia/configuration.yml", &p.authelia)
+    {
+        return;
+    }
+    tracing::info!("gateway configuration changed since last start; re-applying");
+    let _ops = st.ops.lock().await;
+    reapply_quietly(&st).await;
 }
 
 /// Re-apply after a change, logging failures as events instead of failing the caller.

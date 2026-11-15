@@ -187,10 +187,34 @@ export const useEditUser = () =>
   useAction(
     ({ username, ...body }: { username: string; display_name: string; email: string; role: "admin" | "member"; disabled: boolean; apps: string[] | null; password?: string }) =>
       put(`/gateway/users/${username}`, body),
-    [keys.users, keys.gateway],
+    [keys.users, keys.gateway, ["sessions"]],
     "edit-user",
   );
-export const useDeleteUser = () => useAction((name: string) => del(`/gateway/users/${name}`), [keys.users, keys.setup, keys.gateway], "delete-user");
+export const useDeleteUser = () => useAction((name: string) => del(`/gateway/users/${name}`), [keys.users, keys.setup, keys.gateway, ["sessions"]], "delete-user");
+
+export interface DeviceSession {
+  id: string;
+  user: string;
+  display_name: string | null;
+  /** "Safari on iPhone" */
+  device: string;
+  /** The tailnet device it came from, when visible. */
+  node: { name: string; os: string; ip: string } | null;
+  first_seen: number;
+  last_seen: number;
+  apps: string[];
+  /** The session this page is using. */
+  current: boolean;
+}
+export const useSessions = () =>
+  useQuery({
+    queryKey: ["sessions"],
+    queryFn: () => api<{ running: boolean; sessions: DeviceSession[] }>("/sessions"),
+    refetchInterval: 15_000,
+  });
+export const useSignOutSession = () => useAction((id: string) => del(`/sessions/${id}`), [["sessions"]], "sign-out-session");
+export const useSignOutAll = () =>
+  useAction((user: string | null) => post("/sessions/sign-out", user ? { user } : {}), [["sessions"]], "sign-out-all");
 export const useCloudflareConnect = () =>
   useAction((b: { api_token: string; domain: string }) => post("/cloudflare/connect", b), settingsKeys, "cloudflare");
 export const useCloudflareDisconnect = () => useAction((b: { delete: boolean }) => post("/cloudflare/disconnect", b), settingsKeys, "cloudflare-off");

@@ -388,9 +388,17 @@ async fn delete_user(
     check_admins(&list)?;
     store::save(&st.config.gateway_dir().join("users.json"), &list).map_err(internal)?;
     gateway::refresh(&st).await.map_err(err)?;
+    sign_out_quietly(&st, &name).await;
     st.event(Level::Info, "gateway", "Login removed", name)
         .await;
     Ok(Json(json!({ "ok": true })))
+}
+
+/// Sign a login out of every device; a failure is logged, not returned (the edit stands).
+async fn sign_out_quietly(st: &SharedState, name: &str) {
+    if let Err(e) = crate::sessions::sign_out_user(st, name).await {
+        tracing::warn!(user = name, error = %e, "signing out devices failed");
+    }
 }
 
 async fn edit_user(
@@ -406,6 +414,8 @@ async fn edit_user(
     if !email.contains('@') || email.contains(char::is_whitespace) {
         return Err(bad("Enter a valid email address."));
     }
+    // A new password or disabling signs the login out everywhere.
+    let revoke = e.disabled || e.password.as_ref().is_some_and(|p| !p.is_empty());
     if let Some(p) = e.password.filter(|p| !p.is_empty()) {
         if p.chars().count() < 12 {
             return Err(bad("Passwords need at least 12 characters."));
@@ -435,6 +445,9 @@ async fn edit_user(
     check_admins(&list)?;
     store::save(&st.config.gateway_dir().join("users.json"), &list).map_err(internal)?;
     gateway::refresh(&st).await.map_err(err)?;
+    if revoke {
+        sign_out_quietly(&st, &name).await;
+    }
     st.event(Level::Info, "gateway", "Login updated", name)
         .await;
     Ok(Json(updated))

@@ -109,7 +109,11 @@ export function Settings() {
       id: "users",
       label: "Users",
       icon: UsersThreeIcon,
-      children: kids(["People", "People"], ["App access", "App access"]),
+      children: kids(
+        ["People", "People"],
+        ["Signed-in devices", "Signed-in devices"],
+        ["App access", "App access"],
+      ),
     },
     {
       id: "access",

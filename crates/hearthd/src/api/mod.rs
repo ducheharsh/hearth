@@ -7,6 +7,7 @@ mod containers;
 mod discover;
 mod packs;
 mod search;
+mod sessions;
 mod settings;
 mod storage;
 mod system;
@@ -38,6 +39,7 @@ pub fn router(state: SharedState) -> Router {
         .merge(discover::routes())
         .merge(terminal::routes())
         .merge(search::routes())
+        .merge(sessions::routes())
         .merge(updates::routes())
         .merge(packs::routes())
         .route_layer(middleware::from_fn_with_state(state.clone(), require_auth));

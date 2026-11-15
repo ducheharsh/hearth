@@ -62,6 +62,11 @@ Open `http://127.0.0.1:9000`. From another device before the gateway is on:
 `ssh -L 9000:localhost:9000 <mac>`. Then in Settings: connect Tailscale, add a login, and turn on the
 gateway, and the dashboard and apps are reachable over HTTPS on your tailnet.
 
+hearthd also listens on the next port (`127.0.0.1:9001` by default) for the gateway's access logs,
+which name the signed-in devices. When an upgrade changes the gateway configuration, hearthd
+re-applies it once on startup. Upgrading to 0.1.5 moves sign-in sessions into Redis, so everyone signs
+in again once.
+
 ### Tailnets without HTTPS certificates
 
 Some tailnets (often a work one) can't turn on HTTPS Certificates. In **Settings → Network →
@@ -96,6 +101,7 @@ is named "Caddy Local Authority". Port 9444 is reserved for this.
 ├── backups.json         backup settings + last results
 ├── updates.json         update status, auto-update list, history
 ├── alerts.json          alert settings
+├── sessions.json        signed-in devices (cookie hashes only)
 ├── apps/<id>/           compose.yml, hearth.override.yml, [hearth.pin.yml], .env, data/
 ├── custom/              your own app definitions
 ├── gateway/             Caddyfile, compose, Authelia config, users.json, authelia.env, DB,
