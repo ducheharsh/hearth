@@ -953,6 +953,7 @@ dependencies = [
  "hearth-gateway",
  "hearth-host",
  "hearth-search",
+ "plist",
  "qrcode",
  "reqwest",
  "rust-embed",

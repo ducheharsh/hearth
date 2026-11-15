@@ -7,6 +7,7 @@
 mod alerts;
 mod api;
 mod backup;
+mod bundle;
 mod cloudflare;
 mod config;
 mod discover;
@@ -17,6 +18,7 @@ mod headscale;
 mod history;
 mod packs;
 mod search;
+mod service;
 mod settings;
 mod state;
 mod storage;
@@ -30,7 +32,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::Context as _;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use hearth_core::Catalog;
 use hearth_host::compose::ComposeRunner;
 use hearth_host::docker::DockerClient;
@@ -43,9 +45,66 @@ use crate::state::{AppState, Metrics, load_custom};
 #[derive(Debug, Parser)]
 #[command(version, about = "hearth: self-hosting control plane")]
 struct Cli {
-    /// Path to hearth.toml (defaults apply if the file is missing).
-    #[arg(short, long, env = "HEARTH_CONFIG", default_value = "hearth.toml")]
-    config: PathBuf,
+    /// Path to hearth.toml. Default: ./hearth.toml if present, else ~/.hearth/hearth.toml
+    /// (built-in defaults apply if neither exists).
+    #[arg(short, long, env = "HEARTH_CONFIG", global = true)]
+    config: Option<PathBuf>,
+    #[command(subcommand)]
+    command: Option<Command>,
+}
+
+#[derive(Debug, Subcommand)]
+enum Command {
+    /// Run the daemon (the default).
+    Run,
+    /// Start hearth at login (launchd), stop doing so, or show its state.
+    Service {
+        #[command(subcommand)]
+        action: ServiceAction,
+    },
+    /// Open the dashboard in your browser.
+    Open,
+}
+
+#[derive(Debug, Subcommand)]
+enum ServiceAction {
+    Install,
+    Uninstall,
+    Status,
+}
+
+/// Commands that do something and exit instead of running the daemon.
+fn one_shot(
+    command: Option<Command>,
+    explicit: Option<&std::path::Path>,
+    config: &Config,
+) -> Option<anyhow::Result<()>> {
+    match command? {
+        Command::Service { action } => Some(match action {
+            ServiceAction::Install => service::install(explicit, config),
+            ServiceAction::Uninstall => service::uninstall(),
+            ServiceAction::Status => service::status(config.listen),
+        }),
+        Command::Open => Some(
+            std::process::Command::new("/usr/bin/open")
+                .arg(format!("http://{}", config.listen))
+                .status()
+                .map(|_| ())
+                .map_err(Into::into),
+        ),
+        Command::Run => None,
+    }
+}
+
+fn config_path(explicit: Option<&PathBuf>) -> PathBuf {
+    if let Some(p) = explicit {
+        return p.clone();
+    }
+    let local = PathBuf::from("hearth.toml");
+    if local.exists() {
+        return local;
+    }
+    std::env::var_os("HOME").map_or(local, |h| PathBuf::from(h).join(".hearth/hearth.toml"))
 }
 
 #[tokio::main]
@@ -58,9 +117,14 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let cli = Cli::parse();
-    let config = Config::load(&cli.config)?;
+    let path = config_path(cli.config.as_ref());
+    let mut config = Config::load(&path)?;
+    if let Some(done) = one_shot(cli.command, cli.config.as_deref(), &config) {
+        return done;
+    }
     std::fs::create_dir_all(&config.state_dir)
         .with_context(|| format!("creating {}", config.state_dir.display()))?;
+    bundle::ensure_catalog(&mut config)?;
 
     let builtin: Vec<_> = Catalog::load_dir(&config.catalog_dir)
         .with_context(|| format!("loading catalog from {}", config.catalog_dir.display()))?

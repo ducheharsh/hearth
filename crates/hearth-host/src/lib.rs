@@ -37,13 +37,53 @@ pub fn random_bytes<const N: usize>() -> std::io::Result<[u8; N]> {
     Ok(bytes)
 }
 
+/// Find a command-line tool even when `PATH` is minimal (launchd services, Homebrew
+/// services): the user's `PATH` first, then the usual install locations for Homebrew,
+/// OrbStack, Docker Desktop and the Tailscale app. Falls back to the bare name.
+#[must_use]
+pub fn resolve(program: &str) -> std::path::PathBuf {
+    use std::path::{Path, PathBuf};
+    if program.contains('/') {
+        return PathBuf::from(program);
+    }
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_default();
+    let mut dirs: Vec<PathBuf> = std::env::var_os("PATH")
+        .map(|p| std::env::split_paths(&p).collect())
+        .unwrap_or_default();
+    dirs.extend(
+        [
+            "/opt/homebrew/bin",
+            "/usr/local/bin",
+            "/Applications/Docker.app/Contents/Resources/bin",
+            "/usr/bin",
+            "/bin",
+            "/usr/sbin",
+            "/sbin",
+        ]
+        .iter()
+        .map(PathBuf::from),
+    );
+    dirs.push(home.join(".orbstack/bin"));
+    if let Some(found) = dirs.iter().map(|d| d.join(program)).find(|p| p.is_file()) {
+        return found;
+    }
+    // The Mac App Store / standalone Tailscale ships its CLI inside the app.
+    let app_cli = Path::new("/Applications/Tailscale.app/Contents/MacOS/Tailscale");
+    if program == "tailscale" && app_cli.is_file() {
+        return app_cli.to_path_buf();
+    }
+    PathBuf::from(program)
+}
+
 /// Run an external command, capturing output; non-zero exit becomes an error.
 pub async fn run(
     program: &str,
     args: &[&str],
     envs: &[(&str, &str)],
 ) -> Result<String, CommandError> {
-    let out = tokio::process::Command::new(program)
+    let out = tokio::process::Command::new(resolve(program))
         .args(args)
         .envs(envs.iter().copied())
         .kill_on_drop(true)
@@ -73,4 +113,20 @@ pub enum CommandError {
     },
     #[error("`{command}` failed: {stderr}")]
     Failed { command: String, stderr: String },
+}
+
+#[cfg(test)]
+mod tests {
+    use super::resolve;
+    use std::path::PathBuf;
+
+    #[test]
+    fn resolves_tools_outside_path() {
+        assert!(resolve("sh").is_absolute());
+        assert_eq!(resolve("./x"), PathBuf::from("./x"));
+        assert_eq!(
+            resolve("definitely-not-a-tool"),
+            PathBuf::from("definitely-not-a-tool")
+        );
+    }
 }

@@ -83,7 +83,7 @@ fn parse_status(raw: &str) -> Result<TailscaleStatus, serde_json::Error> {
 /// `auth_url` in [`status`] a moment later.
 pub fn start_login() {
     tokio::spawn(async {
-        let child = tokio::process::Command::new("tailscale")
+        let child = tokio::process::Command::new(crate::resolve("tailscale"))
             .arg("login")
             .kill_on_drop(true)
             .output();

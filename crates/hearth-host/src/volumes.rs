@@ -109,7 +109,7 @@ async fn list_macos() -> Result<Vec<Volume>, VolumeError> {
 }
 
 async fn run_bytes(program: &str, args: &[&str]) -> Result<Vec<u8>, CommandError> {
-    let out = tokio::process::Command::new(program)
+    let out = tokio::process::Command::new(crate::resolve(program))
         .args(args)
         .kill_on_drop(true)
         .output()

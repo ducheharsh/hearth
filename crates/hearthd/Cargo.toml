@@ -24,6 +24,7 @@ tracing-subscriber.workspace = true
 clap.workspace = true
 rust-embed.workspace = true
 qrcode.workspace = true
+plist.workspace = true
 totp-rs.workspace = true
 serde_yaml_ng.workspace = true
 sysinfo.workspace = true
