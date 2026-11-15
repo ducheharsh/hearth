@@ -16,7 +16,7 @@ hearth-gateway = { path = "crates/hearth-gateway" }
 hearth-search = { path = "crates/hearth-search" }
 
 # async + web
-tokio = { version = "1.54", features = ["macros", "rt-multi-thread", "process", "signal", "fs", "sync", "time"] }
+tokio = { version = "1.54", features = ["macros", "rt-multi-thread", "process", "signal", "fs", "sync", "time", "net"] }
 axum = { version = "0.8", features = ["ws"] }
 tower-http = { version = "0.7", features = ["trace", "timeout"] }
 futures-util = "0.3"

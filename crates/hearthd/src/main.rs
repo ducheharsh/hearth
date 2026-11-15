@@ -5,6 +5,7 @@
 //! loopback; the Caddy + Authelia gateway is the way in from other devices.
 
 mod alerts;
+mod always_on;
 mod api;
 mod backup;
 mod bundle;
@@ -184,6 +185,7 @@ async fn main() -> anyhow::Result<()> {
         packs: pack_list,
         pack_jobs: RwLock::new(packs::Jobs::default()),
         sessions: RwLock::new(sessions_store),
+        always_on: Mutex::new(always_on::AlwaysOnState::default()),
         alert_tx,
         ops: Mutex::new(()),
     });
@@ -202,6 +204,8 @@ async fn main() -> anyhow::Result<()> {
     tokio::spawn(sessions::run_receiver(state.clone()));
     tokio::spawn(sessions::run_saver(state.clone()));
     tokio::spawn(gateway::reconcile(state.clone()));
+    tokio::spawn(always_on::run_keeper(state.clone()));
+    tokio::spawn(always_on::run_watch(state.clone()));
 
     let listener = tokio::net::TcpListener::bind(listen)
         .await

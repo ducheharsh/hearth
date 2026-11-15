@@ -10,6 +10,7 @@ import {
   GaugeIcon,
   GearSixIcon,
   ListChecksIcon,
+  LightningIcon,
   LockKeyIcon,
   NetworkIcon,
   BellRingingIcon,
@@ -32,6 +33,7 @@ import { useSaveSettings, useSettings, useSetup } from "../../api/hooks";
 import type { Settings as SettingsT } from "../../api/types";
 import { useUrlParam } from "../../lib/url-state";
 import { AccessSection } from "./access";
+import { AlwaysOnSection } from "./always-on";
 import { AlertsSection } from "./alerts";
 import { UsersSection } from "./users";
 import { DomainsSection } from "./domains";
@@ -41,6 +43,7 @@ type SectionId =
   | "setup"
   | "general"
   | "network"
+  | "always-on"
   | "users"
   | "access"
   | "alerts"
@@ -103,6 +106,16 @@ export function Settings() {
         ["Tailscale", "Tailscale"],
         ["NetBird", "NetBird"],
         ["Headscale", "Headscale"],
+      ),
+    },
+    {
+      id: "always-on",
+      label: "Always On",
+      icon: LightningIcon,
+      children: kids(
+        ["Stay awake", "Stay awake"],
+        ["Power", "Power"],
+        ["Connectivity", "Connectivity"],
       ),
     },
     {
@@ -171,6 +184,7 @@ export function Settings() {
           <SetupSection onGo={(s) => setSection(s as SectionId)} />
         ) : null}
         {section === "network" ? <NetworkSection /> : null}
+        {section === "always-on" ? <AlwaysOnSection /> : null}
         {section === "access" ? <AccessSection /> : null}
         {section === "domains" ? <DomainsSection /> : null}
         {section === "users" ? <UsersSection /> : null}
@@ -390,6 +404,7 @@ const FIX: Record<string, { tab?: string; section?: string }> = {
   https: { section: "network" },
   vault: { tab: "storage" },
   login: { section: "users" },
+  awake: { section: "always-on" },
   gateway: { section: "access" },
   domain: { section: "domains" },
 };

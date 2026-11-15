@@ -415,3 +415,46 @@ export interface HeadscaleStatus {
   nodes: HeadscaleNode[] | null;
   image: string;
 }
+
+export interface AlwaysOnSettings {
+  keep_awake: boolean;
+  watch_connectivity: boolean;
+  auto_repair: boolean;
+}
+export interface PowerStatus {
+  on_ac: boolean;
+  battery: number | null;
+  /** Minutes until sleep on power; 0 = never. */
+  sleep_on_ac: number | null;
+  wake_on_lan: boolean | null;
+  /** null when this Mac doesn't support it (laptops). */
+  restart_after_power_loss: boolean | null;
+  sleep_disabled: boolean;
+  sleep_prevented: boolean;
+}
+export interface NetLink {
+  device: string;
+  kind: "wifi" | "ethernet" | "other";
+  port: string;
+  ip: string | null;
+  gateway: string | null;
+}
+export interface NetworkStatus {
+  primary: NetLink | null;
+  wifi_device: string | null;
+  wifi_on: boolean | null;
+  has_ethernet: boolean;
+}
+export interface Connectivity {
+  online: boolean | null;
+  latency_ms: number | null;
+  checked_at: number | null;
+  outages: { start: number; end: number | null }[];
+}
+export interface AlwaysOn {
+  settings: AlwaysOnSettings;
+  holding: boolean;
+  power: PowerStatus | null;
+  network: NetworkStatus | null;
+  connectivity: Connectivity;
+}

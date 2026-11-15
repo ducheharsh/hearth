@@ -71,6 +71,10 @@ Everything mutable sits behind `tokio::sync::RwLock`/`Mutex` on `AppState`:
 | `alerts::run_dispatcher` | event-driven | Forward events to ntfy / Telegram / webhook |
 | `alerts::run_monitors` | 60 s | App crashes/recoveries, low disk, memory pressure |
 | `alerts::run_login_watch` | 30 s | Failed sign-ins from Authelia's log |
+| `sessions::run_receiver` | stream | Caddy access logs → signed-in devices |
+| `gateway::reconcile` | once | Re-apply the gateway on startup if its rendered config changed |
+| `always_on::run_keeper` | 10 s | Hold `caffeinate -s -w <hearthd pid>` while *Keep awake* is on (dies with hearthd) |
+| `always_on::run_watch` | 30 s | TCP probe to 1.1.1.1 / 8.8.8.8 / 9.9.9.9; 2 misses = outage; repairs Wi-Fi and Tailscale |
 
 ### Events
 

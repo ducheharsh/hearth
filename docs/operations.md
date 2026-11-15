@@ -67,6 +67,14 @@ which name the signed-in devices. When an upgrade changes the gateway configurat
 re-applies it once on startup. Upgrading to 0.1.5 moves sign-in sessions into Redis, so everyone signs
 in again once.
 
+### Keeping it running
+
+Settings → **Always On** keeps the Mac awake on power, applies the `pmset` settings a server wants
+(no sleep on power, wake for network access, restart after a power failure on desktops) and watches
+the internet. For the steadiest server: keep it on the charger, prefer Ethernet, and on a Mac mini let
+it restart after power failures. The sleep assertion belongs to hearthd's process, so it ends when
+hearth stops.
+
 ### Tailnets without HTTPS certificates
 
 Some tailnets (often a work one) can't turn on HTTPS Certificates. In **Settings → Network →

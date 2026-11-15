@@ -61,6 +61,41 @@ struct Check {
 }
 
 /// Everything needed for a fully working server, in order.
+/// Stays awake on power: the sleep assertion is held and the Mac is plugged in.
+async fn awake_check(st: &SharedState, keep_awake: bool) -> Check {
+    let holding = st.always_on.lock().await.holding();
+    let power = hearth_host::power::status().await.ok();
+    let on_ac = power.as_ref().is_none_or(|p| p.on_ac);
+    let laptop = power
+        .as_ref()
+        .is_some_and(hearth_host::power::PowerStatus::is_laptop);
+    let lid_ok = power.as_ref().is_some_and(|p| p.sleep_disabled);
+    let (state, detail) = match (keep_awake, holding, on_ac) {
+        (false, ..) => (
+            "todo",
+            "Turn on Keep Awake so the Mac doesn't sleep while serving.".to_owned(),
+        ),
+        (true, true, true) if laptop && !lid_ok => (
+            "done",
+            "Awake on power. Keep the lid open, or allow lid-closed in Settings → Always On."
+                .to_owned(),
+        ),
+        (true, true, true) => ("done", "Awake on power.".to_owned()),
+        (true, _, false) => (
+            "warn",
+            "On battery: plug in so the Mac can stay awake.".to_owned(),
+        ),
+        (true, false, true) => ("warn", "Starting the keep-awake assertion…".to_owned()),
+    };
+    Check {
+        id: "awake",
+        title: "Stays awake",
+        state,
+        detail,
+        tab: "settings",
+    }
+}
+
 #[allow(clippy::too_many_lines)] // a flat, readable checklist
 async fn setup(State(st): State<SharedState>) -> Json<Vec<Check>> {
     let ts = st.tailscale.read().await.clone();
@@ -173,6 +208,7 @@ async fn setup(State(st): State<SharedState>) -> Json<Vec<Check>> {
             },
             "settings",
         ),
+        awake_check(&st, settings.always_on.keep_awake).await,
         Check {
             id: "domain",
             title: "Custom domain (optional)",

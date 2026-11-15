@@ -1,6 +1,7 @@
 //! HTTP API (`/api/*`). The dashboard is served by [`crate::web`] as the fallback.
 
 mod alerts;
+mod always_on;
 pub(crate) mod apps;
 mod backups;
 mod containers;
@@ -31,6 +32,7 @@ pub fn router(state: SharedState) -> Router {
     let api = Router::new()
         .merge(system::routes())
         .merge(alerts::routes())
+        .merge(always_on::routes())
         .merge(apps::routes())
         .merge(backups::routes())
         .merge(containers::routes())

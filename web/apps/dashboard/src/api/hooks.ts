@@ -26,6 +26,8 @@ import type {
   SystemResponse,
   TailscaleStatus,
   TsCerts,
+  AlwaysOn,
+  AlwaysOnSettings,
 } from "./types";
 
 export const keys = {
@@ -381,3 +383,13 @@ export const useAccess = () =>
     queryFn: () => api<{ gateway_enabled: boolean; links: AccessLink[]; qr_svg: string | null; trust_qr_svg: string | null }>("/access"),
     refetchInterval: 30_000,
   });
+
+const alwaysOnKeys = [["always-on"], ["setup"]];
+export const useAlwaysOn = () =>
+  useQuery({ queryKey: ["always-on"], queryFn: () => api<AlwaysOn>("/always-on"), refetchInterval: 15_000 });
+export const useAlwaysOnUpdate = () =>
+  useAction((b: Partial<AlwaysOnSettings>) => put("/always-on", b), alwaysOnKeys, "always-on");
+export const useApplyPower = () =>
+  useAction((b: { lid_closed: boolean }) => post("/always-on/power", b), alwaysOnKeys, "always-on-power");
+export const useWifiPower = () => useAction((on: boolean) => post("/always-on/wifi", { on }), alwaysOnKeys, "always-on-wifi");
+export const useConnectivityCheck = () => useAction(() => post("/always-on/check"), alwaysOnKeys, "always-on-check");

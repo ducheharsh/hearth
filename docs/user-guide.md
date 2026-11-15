@@ -131,6 +131,7 @@ The left tree jumps to any group; the group in view is highlighted.
   published ports, custom control server),
   NetBird (connect, serve apps with hearth's certificate authority), Headscale (install wizard, users,
   keys, join this Mac).
+- **Always On**: keep the Mac awake and online (below).
 - **Users**: people, roles and per-app access (below).
 - **Gateway**: turn the gateway on and see what's published.
   Turning the gateway on shows each step live (check tailnet → write config → download Caddy and
@@ -140,6 +141,22 @@ The left tree jumps to any group; the group in view is highlighted.
 - **Domains & Tunnels**: your domain via Cloudflare Tunnel (from an API token), Tailscale Funnel, ngrok.
 - **Capacity**: memory reserve and disk reserve used by install checks.
 - **Advanced**: require the gateway login for the dashboard itself.
+
+### Always On
+
+- **Stay awake** (on by default): hearth holds a "don't sleep" assertion, like `caffeinate`, for as long
+  as it runs. macOS only honours it on the charger, so a laptop on battery still sleeps; the display
+  can still turn off.
+- **Power** shows sleep on power, wake for network access and restart after a power failure (desktops).
+  **Apply Server Settings** sets them in one go (`pmset`); macOS asks for your Mac password in its own
+  dialog on the Mac. On a laptop, tick **Include** next to *Stay awake with the lid closed* to keep it
+  awake with the lid shut (sleep is disabled entirely, so only do this on the charger).
+- **Connectivity** checks the internet every 30 seconds and shows latency, the connection (Wi-Fi or
+  Ethernet) and recent outages. You're alerted when it drops and when it's back. With **Fix problems
+  automatically**, hearth turns the Wi-Fi radio back on if it was switched off and reconnects Tailscale
+  after an outage (only if it was connected before, so a deliberate disconnect is respected).
+
+Setup shows **Stays awake** as done when the assertion is held on power.
 
 ### Users, roles and app access
 

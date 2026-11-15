@@ -111,6 +111,16 @@ Conventions:
 | GET | `/discover/app/{slug}` | Detail page data |
 | GET | `/discover/app/{slug}/preview` | Cached GitHub social card |
 
+## Always on (`always_on.rs`)
+
+| Method | Path | |
+|---|---|---|
+| GET | `/always-on` | `{settings, holding, power, network, connectivity}` |
+| PUT | `/always-on` | `{keep_awake?, watch_connectivity?, auto_repair?}` |
+| POST | `/always-on/power` | `{lid_closed}`: apply server power settings via macOS's admin prompt (400 if cancelled) |
+| POST | `/always-on/wifi` | `{on}`: Wi-Fi radio on/off |
+| POST | `/always-on/check` | Check the internet now |
+
 ## Signed-in devices (`sessions.rs`)
 
 | Method | Path | |

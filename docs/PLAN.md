@@ -99,6 +99,7 @@ hearth UI: https://<ts-host>:9443 → Caddy → host.docker.internal:9000 (heart
 - [x] Discover detail page (description, licenses, gallery via cached GitHub card, activity bars, rating, similar apps)
 - [x] Category browser (tiles, chip rail, searchable sheet)
 - [x] Network: NetBird (connect, serve over internal-CA HTTPS, CA download), Headscale (install wizard, users, keys, join)
+- [x] Always On: stay awake (caffeinate), server power settings via admin prompt, connectivity watchdog with Wi-Fi/Tailscale repair
 - [x] Signed-in devices: sessions in Redis, Caddy access-log stream, sign out per device / person / everyone; identity headers stripped everywhere; startup reconcile
 - [x] Tailnets without HTTPS certificates: hearth's own CA on the Tailscale IP, certificate download + per-device install steps
 - [x] Ember companion via agent-pet (Apache-2.0) with a runtime-rendered atlas; works around agent-pet 0.8.6 mount bug

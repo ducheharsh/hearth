@@ -12,7 +12,9 @@
 pub mod compose;
 pub mod docker;
 pub mod netbird;
+pub mod network;
 pub mod ollama;
+pub mod power;
 pub mod system;
 pub mod tailscale;
 pub mod volumes;

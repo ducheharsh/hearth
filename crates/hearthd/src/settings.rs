@@ -36,6 +36,30 @@ pub struct Settings {
     pub netbird_enabled: bool,
     /// Who issues the tailnet HTTPS certificates.
     pub tailscale_certs: TsCerts,
+    /// Keeping the Mac awake and connected.
+    pub always_on: AlwaysOn,
+}
+
+/// Running as a server around the clock.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct AlwaysOn {
+    /// Hold a "prevent system sleep" assertion (honoured on power only).
+    pub keep_awake: bool,
+    /// Check the internet every 30 s and report outages.
+    pub watch_connectivity: bool,
+    /// Turn Wi-Fi back on, and reconnect Tailscale after an outage.
+    pub auto_repair: bool,
+}
+
+impl Default for AlwaysOn {
+    fn default() -> Self {
+        Self {
+            keep_awake: true,
+            watch_connectivity: true,
+            auto_repair: true,
+        }
+    }
 }
 
 /// HTTPS on the tailnet: Tailscale's own certificates (published with `tailscale serve`), or
@@ -107,6 +131,7 @@ impl Default for Settings {
             tunnels: Tunnels::default(),
             netbird_enabled: false,
             tailscale_certs: TsCerts::default(),
+            always_on: AlwaysOn::default(),
         }
     }
 }
