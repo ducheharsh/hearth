@@ -178,6 +178,7 @@ async fn main() -> anyhow::Result<()> {
         backups: RwLock::new(backup::load(&state_dir_for_history)),
         updates: RwLock::new(updates::load(&state_dir_for_history)),
         alerts: RwLock::new(alert_settings),
+        gateway_job: RwLock::new(None),
         packs: pack_list,
         pack_jobs: RwLock::new(packs::Jobs::default()),
         alert_tx,

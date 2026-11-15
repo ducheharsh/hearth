@@ -175,7 +175,8 @@ async fn gw_preview(State(st): State<SharedState>) -> Json<serde_json::Value> {
     let p = gateway::preview(&st).await;
     let users = gateway::load_users(&st).map_or(0, |u| u.len());
     let s = st.settings.read().await;
-    Json(json!({ "enabled": s.gateway_enabled, "users": users, "preview": p }))
+    let job = st.gateway_job.read().await.clone();
+    Json(json!({ "enabled": s.gateway_enabled, "users": users, "preview": p, "job": job }))
 }
 
 async fn set_gateway(st: &SharedState, on: bool) -> Result<(), ApiError> {
@@ -184,25 +185,68 @@ async fn set_gateway(st: &SharedState, on: bool) -> Result<(), ApiError> {
     store::save(&st.config.state_dir.join("settings.json"), &*s).map_err(internal)
 }
 
-async fn gw_enable(State(st): State<SharedState>) -> Result<Json<gateway::Outcome>, ApiError> {
-    let _ops = st.ops.lock().await;
-    set_gateway(&st, true).await?;
-    match gateway::apply(&st).await {
-        Ok(o) => {
-            st.event(
-                Level::Success,
-                "gateway",
-                "Gateway is live",
-                format!("{} sites published over Tailscale.", o.served.len()),
-            )
-            .await;
-            Ok(Json(o))
-        }
-        Err(e) => {
-            set_gateway(&st, false).await?;
-            Err(err(e))
-        }
+/// Turn the gateway on in the background; progress is in `GET /gateway` (`job`).
+async fn gw_enable(State(st): State<SharedState>) -> Result<Json<serde_json::Value>, ApiError> {
+    if gateway::load_users(&st).map_err(internal)?.is_empty() {
+        return Err(bad("Create a login first, then turn the gateway on."));
     }
+    {
+        let mut job = st.gateway_job.write().await;
+        if job.as_ref().is_some_and(|j| j.finished.is_none()) {
+            return Err(ApiError::Conflict(
+                json!({ "error": "The gateway is already being set up." }),
+            ));
+        }
+        *job = Some(gateway::new_job());
+    }
+    let s = st.clone();
+    tokio::spawn(async move {
+        let _ops = s.ops.lock().await;
+        let result = match set_gateway(&s, true).await {
+            Ok(()) => gateway::apply(&s).await,
+            Err(e) => Err(anyhow::anyhow!("{e:?}")),
+        };
+        {
+            let mut job = s.gateway_job.write().await;
+            if let Some(j) = job.as_mut() {
+                if let Err(e) = &result {
+                    let idx = j
+                        .steps
+                        .iter()
+                        .position(|x| x.state == "running")
+                        .or_else(|| j.steps.iter().position(|x| x.state == "pending"));
+                    if let Some(step) = idx.and_then(|i| j.steps.get_mut(i)) {
+                        step.state = "failed";
+                        step.detail = Some(format!("{e:#}"));
+                    }
+                }
+                j.ok = result.is_ok();
+                j.finished = Some(crate::events::now());
+            }
+        }
+        match result {
+            Ok(o) => {
+                s.event(
+                    Level::Success,
+                    "gateway",
+                    "Gateway is live",
+                    format!("{} sites published over Tailscale.", o.served.len()),
+                )
+                .await;
+            }
+            Err(e) => {
+                let _ = set_gateway(&s, false).await;
+                s.event(
+                    Level::Error,
+                    "gateway",
+                    "Gateway couldn’t start",
+                    format!("{e:#}"),
+                )
+                .await;
+            }
+        }
+    });
+    Ok(Json(json!({ "started": true })))
 }
 
 async fn gw_disable(State(st): State<SharedState>) -> Result<Json<serde_json::Value>, ApiError> {
@@ -222,7 +266,7 @@ async fn users(State(st): State<SharedState>) -> Result<Json<serde_json::Value>,
         .map_err(internal)?
         .into_iter()
         .map(
-            |u| json!({ "username": u.username, "display_name": u.display_name, "email": u.email }),
+            |u| json!({ "username": u.username, "display_name": u.display_name, "email": u.email, "totp": u.totp }),
         )
         .collect();
     Ok(Json(json!(list)))

@@ -150,21 +150,128 @@ pub async fn write(st: &SharedState) -> anyhow::Result<Preview> {
     Ok(p)
 }
 
+/// Progress of turning the gateway on, shown step by step in Settings.
+#[derive(Debug, Clone, Serialize)]
+pub struct Job {
+    pub started: u64,
+    pub finished: Option<u64>,
+    pub ok: bool,
+    pub steps: Vec<JobStep>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct JobStep {
+    pub label: &'static str,
+    /// `pending` | `running` | `done` | `failed`
+    pub state: &'static str,
+    pub detail: Option<String>,
+}
+
+pub const STEP_CHECK: usize = 0;
+pub const STEP_WRITE: usize = 1;
+pub const STEP_PULL: usize = 2;
+pub const STEP_START: usize = 3;
+pub const STEP_PUBLISH: usize = 4;
+
+#[must_use]
+pub fn new_job() -> Job {
+    let step = |label| JobStep {
+        label,
+        state: "pending",
+        detail: None,
+    };
+    Job {
+        started: crate::events::now(),
+        finished: None,
+        ok: false,
+        steps: vec![
+            step("Check your tailnet"),
+            step("Write the gateway configuration"),
+            step("Download Caddy and Authelia"),
+            step("Start the login gateway"),
+            step("Publish on Tailscale"),
+        ],
+    }
+}
+
+/// Update a step of the running job; no-op when no enable job is in progress
+/// (apply also runs after every install).
+pub async fn mark(st: &SharedState, i: usize, state: &'static str, detail: Option<String>) {
+    let mut job = st.gateway_job.write().await;
+    if let Some(s) = job
+        .as_mut()
+        .filter(|j| j.finished.is_none())
+        .and_then(|j| j.steps.get_mut(i))
+    {
+        s.state = state;
+        if detail.is_some() || state == "done" {
+            s.detail = detail;
+        }
+    }
+}
+
+async fn job_active(st: &SharedState) -> bool {
+    st.gateway_job
+        .read()
+        .await
+        .as_ref()
+        .is_some_and(|j| j.finished.is_none())
+}
+
+/// Before turning the gateway on: a login exists and the tailnet can issue HTTPS certificates.
+async fn precheck(st: &SharedState) -> anyhow::Result<()> {
+    if load_users(st)?.is_empty() {
+        bail!("Create a login in Settings → Logins & Gateway before turning the gateway on.");
+    }
+    mark(st, STEP_CHECK, "running", None).await;
+    // Without tailnet HTTPS certificates `tailscale serve` can't publish anything (and
+    // would stop to ask). Fail fast with the fix instead of starting containers first.
+    if let Ok(ts) = hearth_host::tailscale::status().await
+        && ts.backend_state == "Running"
+        && !ts.https_enabled
+    {
+        bail!(
+            "Your tailnet doesn't have HTTPS certificates turned on, so Tailscale can't publish apps. \
+             Turn on MagicDNS and HTTPS Certificates at https://login.tailscale.com/admin/dns, then try again."
+        );
+    }
+    mark(st, STEP_CHECK, "done", None).await;
+    Ok(())
+}
+
 /// Apply: write files; if enabled, run the gateway and publish every route.
 pub async fn apply(st: &SharedState) -> anyhow::Result<Outcome> {
+    let enabled = st.settings.read().await.gateway_enabled;
+    if enabled {
+        precheck(st).await?;
+    }
+    mark(st, STEP_WRITE, "running", None).await;
     let p = write(st).await?;
-    if !st.settings.read().await.gateway_enabled {
+    mark(st, STEP_WRITE, "done", None).await;
+    if !enabled {
         return Ok(Outcome {
             applied: false,
             served: vec![],
             note: "Gateway is off. Files are written; turn it on in Settings to publish.".into(),
         });
     }
-    if load_users(st)?.is_empty() {
-        bail!("Create a login in Settings → Security before turning the gateway on.");
-    }
     let env = ComposeEnv::default().with("TS_HOST", st.ts_host().await);
     let proj = project(st);
+    if job_active(st).await {
+        // Pull separately so the slow first download shows as its own step.
+        mark(
+            st,
+            STEP_PULL,
+            "running",
+            Some("First time takes a minute or two.".into()),
+        )
+        .await;
+        proj.pull(&env)
+            .await
+            .context("downloading Caddy + Authelia")?;
+        mark(st, STEP_PULL, "done", None).await;
+    }
+    mark(st, STEP_START, "running", None).await;
     proj.up(&env).await.context("starting Caddy + Authelia")?;
     // Routes may have changed without the compose file changing: reload Caddy's config.
     if let Err(e) = proj
@@ -178,6 +285,8 @@ pub async fn apply(st: &SharedState) -> anyhow::Result<Outcome> {
         tracing::warn!(error = %e, "caddy reload failed (it may still be starting)");
     }
 
+    mark(st, STEP_START, "done", None).await;
+    mark(st, STEP_PUBLISH, "running", None).await;
     let served_path = dir(st).join("served.json");
     let mut served: Served = store::load(&served_path)?;
     let wanted: BTreeSet<u16> = p.routes.iter().map(|r| r.port).collect();
@@ -191,7 +300,14 @@ pub async fn apply(st: &SharedState) -> anyhow::Result<Outcome> {
             tracing::warn!(port, error = %e, "unserve failed");
         }
     }
-    for port in &wanted {
+    for (i, port) in wanted.iter().enumerate() {
+        mark(
+            st,
+            STEP_PUBLISH,
+            "running",
+            Some(format!("Port {port} ({} of {})", i + 1, wanted.len())),
+        )
+        .await;
         hearth_host::tailscale::serve(*port)
             .await
             .with_context(|| format!("tailscale serve :{port}"))?;
@@ -207,6 +323,13 @@ pub async fn apply(st: &SharedState) -> anyhow::Result<Outcome> {
     } else {
         let _ = hearth_host::tailscale::funnel_off().await;
     }
+    mark(
+        st,
+        STEP_PUBLISH,
+        "done",
+        Some(format!("{} sites", wanted.len())),
+    )
+    .await;
     Ok(Outcome {
         applied: true,
         served: wanted.into_iter().collect(),

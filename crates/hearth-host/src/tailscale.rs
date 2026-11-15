@@ -45,7 +45,7 @@ pub async fn status() -> Result<TailscaleStatus, TailscaleError> {
             ..TailscaleStatus::default()
         }),
         // Logged out / stopped daemons still print JSON on stdout but exit non-zero sometimes.
-        Err(e @ CommandError::Failed { .. }) => Err(e.into()),
+        Err(e @ (CommandError::Failed { .. } | CommandError::Timeout { .. })) => Err(e.into()),
     }
 }
 
@@ -140,31 +140,45 @@ pub async fn set_hostname(name: &str) -> Result<(), TailscaleError> {
 pub async fn serve(port: u16) -> Result<(), TailscaleError> {
     let https = format!("--https={port}");
     let target = format!("http://127.0.0.1:{port}");
-    run("tailscale", &["serve", "--bg", &https, &target], &[]).await?;
+    crate::run_timeout(
+        "tailscale",
+        &["serve", "--bg", &https, &target],
+        PUBLISH_LIMIT,
+    )
+    .await?;
     Ok(())
 }
 
 /// Stop publishing a port.
 pub async fn unserve(port: u16) -> Result<(), TailscaleError> {
     let https = format!("--https={port}");
-    run("tailscale", &["serve", &https, "off"], &[]).await?;
+    crate::run_timeout("tailscale", &["serve", &https, "off"], PUBLISH_LIMIT).await?;
     Ok(())
 }
+
+/// `tailscale serve`/`funnel` stop and wait for a person when HTTPS or Funnel isn't enabled
+/// for the tailnet; never let that hang hearth.
+const PUBLISH_LIMIT: std::time::Duration = std::time::Duration::from_secs(20);
 
 /// Public internet access via Tailscale Funnel: `https://<node>` (443) → local port.
 pub async fn funnel(local_port: u16) -> Result<(), TailscaleError> {
     let target = format!("http://127.0.0.1:{local_port}");
-    run(
+    crate::run_timeout(
         "tailscale",
         &["funnel", "--bg", "--https=443", &target],
-        &[],
+        PUBLISH_LIMIT,
     )
     .await?;
     Ok(())
 }
 
 pub async fn funnel_off() -> Result<(), TailscaleError> {
-    run("tailscale", &["funnel", "--https=443", "off"], &[]).await?;
+    crate::run_timeout(
+        "tailscale",
+        &["funnel", "--https=443", "off"],
+        PUBLISH_LIMIT,
+    )
+    .await?;
     Ok(())
 }
 

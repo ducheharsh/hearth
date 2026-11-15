@@ -83,16 +83,45 @@ pub async fn run(
     args: &[&str],
     envs: &[(&str, &str)],
 ) -> Result<String, CommandError> {
-    let out = tokio::process::Command::new(resolve(program))
+    run_inner(program, args, envs, None).await
+}
+
+/// [`run`], but give up (and kill the process) after `limit`. For commands that may
+/// stop and wait for a person, such as `tailscale serve` asking to enable HTTPS.
+pub async fn run_timeout(
+    program: &str,
+    args: &[&str],
+    limit: std::time::Duration,
+) -> Result<String, CommandError> {
+    run_inner(program, args, &[], Some(limit)).await
+}
+
+async fn run_inner(
+    program: &str,
+    args: &[&str],
+    envs: &[(&str, &str)],
+    limit: Option<std::time::Duration>,
+) -> Result<String, CommandError> {
+    let output = tokio::process::Command::new(resolve(program))
         .args(args)
         .envs(envs.iter().copied())
+        .stdin(std::process::Stdio::null())
         .kill_on_drop(true)
-        .output()
-        .await
-        .map_err(|source| CommandError::Spawn {
-            program: program.to_owned(),
-            source,
-        })?;
+        .output();
+    let out = match limit {
+        // Dropping the timed-out future drops the child, which kills it.
+        Some(d) => tokio::time::timeout(d, output)
+            .await
+            .map_err(|_| CommandError::Timeout {
+                command: format!("{program} {}", args.join(" ")),
+                secs: d.as_secs(),
+            })?,
+        None => output.await,
+    }
+    .map_err(|source| CommandError::Spawn {
+        program: program.to_owned(),
+        source,
+    })?;
     if out.status.success() {
         Ok(String::from_utf8_lossy(&out.stdout).into_owned())
     } else {
@@ -113,6 +142,8 @@ pub enum CommandError {
     },
     #[error("`{command}` failed: {stderr}")]
     Failed { command: String, stderr: String },
+    #[error("`{command}` didn't finish within {secs}s")]
+    Timeout { command: String, secs: u64 },
 }
 
 #[cfg(test)]

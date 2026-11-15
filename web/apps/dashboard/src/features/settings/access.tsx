@@ -1,3 +1,4 @@
+import { AnimatePresence } from "motion/react";
 import { useState, type FormEvent } from "react";
 import { Banner } from "@cloudflare/kumo/components/banner";
 import { Button } from "@cloudflare/kumo/components/button";
@@ -10,15 +11,31 @@ import { SettingRow, SettingsGroup, SettingsHeader } from "@hearth/ui/components
 import { StatusDot } from "@hearth/ui/components/status-dot";
 import { useAddUser, useDeleteUser, useGateway, useGatewayAction, useTailscale, useTotpRemove, useUsers } from "../../api/hooks";
 import { TwoFactorDialog } from "./two-factor";
+import { GatewayProgress } from "./gateway-progress";
 
 export function AccessSection() {
   const gw = useGateway();
   const users = useUsers();
   const ts = useTailscale();
   const action = useGatewayAction();
-  const enabled = gw.data?.enabled ?? false;
+  const job = gw.data?.job ?? null;
+  const setting = job != null && job.finished == null;
+  const enabled = (gw.data?.enabled ?? false) || setting;
+  // Show the progress while it runs, after a failure, and briefly after success.
+  const [dismissed, setDismissed] = useState<number | null>(null);
+  const recent = job?.finished != null && Date.now() / 1000 - job.finished < 120;
+  const showJob = job != null && dismissed !== job.started && (setting || !job.ok || recent);
   const host = ts.data?.dns_name ?? "your-machine.ts.net";
   const noUsers = (users.data?.length ?? 0) === 0;
+  const tsUp = ts.data?.backend_state === "Running";
+  const httpsOff = tsUp && !ts.data?.https_enabled;
+  const blocked = noUsers
+    ? "Create a login below first."
+    : !tsUp
+      ? "Connect Tailscale first (Settings → Network)."
+      : httpsOff
+        ? "Turn on MagicDNS and HTTPS Certificates for your tailnet first (login.tailscale.com/admin/dns)."
+        : null;
 
   return (
     <>
@@ -26,25 +43,38 @@ export function AccessSection() {
 
       <SettingsGroup
         title="Gateway"
-        description="Runs Caddy and Authelia, then publishes every app with HTTPS on your private network."
+        description="Needed to open hearth and your apps from other devices. Runs Caddy and Authelia (your login), then publishes everything with HTTPS on your Tailscale network. Requires Tailscale with HTTPS certificates and at least one login."
         aside={
           <Switch
             checked={enabled}
-            disabled={action.isPending || (!enabled && noUsers)}
+            disabled={setting || action.isPending || (!enabled && blocked != null)}
             onCheckedChange={(on) => action.mutate(on ? "enable" : "disable")}
             aria-label="Gateway"
           />
         }
-        footer={noUsers && !enabled ? "Create a login below first." : enabled ? "Changes to apps re-apply automatically." : "Off: nothing is published."}
+        footer={
+          setting
+            ? "Setting up… you can leave this page."
+            : !enabled && blocked
+              ? blocked
+              : enabled
+                ? "Changes to apps re-apply automatically."
+                : "Off: nothing is published."
+        }
         footerActions={
-          enabled ? (
+          enabled && !setting ? (
             <Button size="xs" variant="secondary" icon={<ArrowsClockwiseIcon />} loading={action.isPending} onClick={() => action.mutate("apply")}>
               Re-apply
             </Button>
           ) : null
         }
       >
-        {enabled ? (
+        <AnimatePresence initial={false}>
+          {showJob && job ? (
+            <GatewayProgress key={job.started} job={job} retrying={action.isPending} onRetry={() => action.mutate("enable")} onDismiss={() => setDismissed(job.started)} />
+          ) : null}
+        </AnimatePresence>
+        {enabled && !setting ? (
           <>
             <SettingRow label="Sign-in page" description="Where you log in and register 2FA.">
               <a className="font-mono text-sm text-kumo-link underline" href={`https://${host}:9091`} target="_blank" rel="noopener noreferrer">

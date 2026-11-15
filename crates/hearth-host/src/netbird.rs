@@ -33,7 +33,7 @@ pub async fn status() -> Result<NetbirdStatus, NetbirdError> {
         Ok(raw) => Ok(parse_status(&raw)?),
         Err(CommandError::Spawn { .. }) => Ok(NetbirdStatus::default()),
         // Daemon stopped / not logged in: installed but disconnected.
-        Err(CommandError::Failed { .. }) => Ok(NetbirdStatus {
+        Err(CommandError::Failed { .. } | CommandError::Timeout { .. }) => Ok(NetbirdStatus {
             installed: true,
             ..NetbirdStatus::default()
         }),

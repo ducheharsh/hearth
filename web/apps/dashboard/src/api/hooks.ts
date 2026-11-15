@@ -61,7 +61,13 @@ export const useStorage = () =>
 export const useSettings = () => useQuery({ queryKey: keys.settings, queryFn: () => api<Settings>("/settings") });
 export const useSetup = () =>
   useQuery({ queryKey: keys.setup, queryFn: () => api<SetupCheck[]>("/setup"), refetchInterval: 10_000 });
-export const useGateway = () => useQuery({ queryKey: keys.gateway, queryFn: () => api<GatewayResponse>("/gateway") });
+export const useGateway = () =>
+  useQuery({
+    queryKey: keys.gateway,
+    queryFn: () => api<GatewayResponse>("/gateway"),
+    // Poll while the gateway is being set up so each step shows as it happens.
+    refetchInterval: (q) => (q.state.data?.job && q.state.data.job.finished == null ? 1000 : false),
+  });
 export const useUsers = () => useQuery({ queryKey: keys.users, queryFn: () => api<GatewayUser[]>("/gateway/users") });
 export const useCloudflare = () =>
   useQuery({ queryKey: keys.cloudflare, queryFn: () => api<CloudflareStatus>("/cloudflare"), refetchInterval: 15_000 });

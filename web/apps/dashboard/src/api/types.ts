@@ -275,10 +275,22 @@ export interface GatewayRoute {
   public: boolean;
 }
 
+export interface GatewayJobStep {
+  label: string;
+  state: "pending" | "running" | "done" | "failed";
+  detail: string | null;
+}
+export interface GatewayJob {
+  started: number;
+  finished: number | null;
+  ok: boolean;
+  steps: GatewayJobStep[];
+}
 export interface GatewayResponse {
   enabled: boolean;
   users: number;
   preview: { routes: GatewayRoute[]; caddyfile: string; compose: string; authelia: string };
+  job: GatewayJob | null;
 }
 
 export interface GatewayUser {
