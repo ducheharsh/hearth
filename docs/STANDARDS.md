@@ -273,7 +273,7 @@ For gateway changes, validate the rendered Caddyfile:
   Verified both paths with real containers: a healthy update succeeded
   and a crashing one rolled back and pinned.
   ```
-- AI-assisted commits end with a `Co-Authored-By:` trailer.
+- Commits are authored by the maintainer's GitHub identity. No AI co-author trailers or AI-tool emails.
 - Never commit secrets, `target/`, `node_modules/`, `dist/` or state directories.
 
 ---

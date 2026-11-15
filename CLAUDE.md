@@ -17,6 +17,7 @@ touches in the same commit (STANDARDS §9).
 - New dependencies go in `[workspace.dependencies]` and are referenced with `.workspace = true`.
 - Long operations run in the background and report through `st.event(..)`; `docker compose` runs hold `st.ops`.
 - One feature per commit on a `feature/*` branch; verify side effects on a test daemon and say so in the message.
+- Never add `Co-Authored-By` trailers or AI/Claude emails to commits; commit as the repo's configured user.
 
 ## Frontend (web/)
 - UI primitives come from `@hearth/ui` (read `web/packages/ui/README.md`) and Kumo granular imports
