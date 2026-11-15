@@ -16,7 +16,8 @@ import { useCompanion } from "./lib/companion";
 import { usePetMood } from "./lib/mood";
 import { useUrlParam } from "./lib/url-state";
 
-type Tab = "overview" | "apps" | "containers" | "storage" | "backups" | "settings";
+type Tab =
+  "overview" | "apps" | "containers" | "storage" | "backups" | "settings";
 
 const PETS_KEY = "hearth:pets:v1";
 function readPets(): boolean {
@@ -61,6 +62,18 @@ function Shell() {
       return !on;
     });
 
+  // First visit: a short product tour once the dashboard has data to point at.
+  const ready = system.data != null;
+  useEffect(() => {
+    if (!ready) return;
+    const t = setTimeout(() => {
+      void import("./features/tour/tour").then((m) => {
+        if (m.shouldAutoStart()) void m.startTour();
+      });
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [ready]);
+
   const tabs = [
     { value: "overview", label: "Overview" },
     { value: "apps", label: "Apps" },
@@ -72,18 +85,36 @@ function Shell() {
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-6xl flex-col px-4 pb-16 pt-5 sm:px-6">
-      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-kumo-base focus:px-3 focus:py-2">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-kumo-base focus:px-3 focus:py-2"
+      >
         Skip to content
       </a>
       <Header name={name} petsOn={petsOn} onTogglePets={togglePets} />
 
-      <nav className="mt-4 overflow-x-auto [scrollbar-width:none]" aria-label="Sections">
-        <Tabs variant="underline" tabs={tabs} value={tab} onValueChange={(v) => setTab(v as Tab)} />
+      <nav
+        className="mt-4 overflow-x-auto [scrollbar-width:none]"
+        aria-label="Sections"
+        data-tour="nav"
+      >
+        <Tabs
+          variant="underline"
+          tabs={tabs}
+          value={tab}
+          onValueChange={(v) => setTab(v as Tab)}
+        />
       </nav>
 
       <main id="main" className="mt-8 scroll-mt-4">
         <AnimatePresence mode="wait" initial={false}>
-          <motion.div key={tab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
+          <motion.div
+            key={tab}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18 }}
+          >
             {tab === "apps" ? (
               <Marketplace />
             ) : tab === "containers" ? (
@@ -91,7 +122,9 @@ function Shell() {
             ) : tab === "storage" ? (
               <Storage />
             ) : tab === "backups" ? (
-              <Backups />
+              <div data-tour="backups">
+                <Backups />
+              </div>
             ) : tab === "settings" ? (
               <Settings />
             ) : (

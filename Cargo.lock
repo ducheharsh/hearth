@@ -896,7 +896,7 @@ dependencies = [
 
 [[package]]
 name = "hearth-core"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "serde",
  "serde_yaml_ng",
@@ -906,7 +906,7 @@ dependencies = [
 
 [[package]]
 name = "hearth-gateway"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "argon2",
  "hearth-core",
@@ -917,7 +917,7 @@ dependencies = [
 
 [[package]]
 name = "hearth-host"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "bollard",
  "futures-util",
@@ -935,7 +935,7 @@ dependencies = [
 
 [[package]]
 name = "hearth-search"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "serde",
  "tantivy",
@@ -944,7 +944,7 @@ dependencies = [
 
 [[package]]
 name = "hearthd"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "anyhow",
  "axum",

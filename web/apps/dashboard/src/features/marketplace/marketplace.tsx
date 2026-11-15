@@ -31,7 +31,7 @@ export function Marketplace() {
   const [view, setView] = useUrlParam<View>("view", "store");
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3" data-tour="store-views">
         <Tabs
           variant="segmented"
           value={view}

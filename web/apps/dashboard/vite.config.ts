@@ -21,6 +21,8 @@ export default defineConfig({
           if (!id.includes("node_modules")) return undefined;
           // Package name = path after the last node_modules/ (pnpm dirs embed peer names).
           const pkg = id.split("node_modules/").pop() ?? "";
+          // Loaded on demand only (product tour, terminal): keep them out of the shared vendor chunk.
+          if (/^(driver\.js|@xterm)\//.test(pkg)) return undefined;
           if (pkg.startsWith("@phosphor-icons/")) return "icons";
           if (/^(react|react-dom|scheduler)\//.test(pkg)) return "react";
           if (/^(@cloudflare\/kumo|@base-ui|@floating-ui|date-fns|@date-fns)/.test(pkg)) return "kumo";

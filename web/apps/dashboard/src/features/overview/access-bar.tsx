@@ -92,6 +92,7 @@ export function AccessBar() {
   return (
     <motion.section
       aria-label="Server address"
+      data-tour="access"
       variants={riseIn}
       initial="hidden"
       animate="show"

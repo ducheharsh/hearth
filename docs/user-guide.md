@@ -3,14 +3,24 @@
 What every part of hearth does and how to use it. For setting the machine up, see
 [operations.md](operations.md).
 
+## Product tour
+
+The first time you open hearth on a computer, a one-minute tour walks through the address bar, health,
+Packs, the App Store, Backups, Settings, ⌘K search and Ember. Replay it anytime with the **?** button in
+the header.
+
 ## Overview
 
 The home screen. At the top is **your server's address**: the link to open hearth from your other
 devices (your Tailscale name on port 9443 once the gateway is on), with copy, **Open** and
 **Scan on Phone** (a QR code). Other ways in are listed under it (your domain, NetBird, this Mac).
-Until the gateway is on, only the local address works, and the bar offers **Set Up Access**.
 
-Below that, a health hero lists anything that needs attention (setup steps, apps that were
+**Remote access needs four things**, and until they're done the bar lists them with **Fix**/**Open**
+buttons: (1) connect Tailscale, (2) turn on MagicDNS and HTTPS Certificates for your tailnet in the
+Tailscale admin console, (3) create a login, (4) turn on the gateway. Port 9000 itself is never
+reachable from other devices; the gateway publishes the dashboard on 9443 behind your login.
+
+**Your Apps** comes next. Below it, a health card (collapsible; it remembers your choice) lists anything that needs attention (setup steps, apps that were
 rolled back, available updates, drives offline), with radial gauges for memory, CPU and disk, 1-hour
 charts, your app launcher, top memory users and the activity timeline.
 
@@ -115,6 +125,9 @@ The left tree jumps to any group; the group in view is highlighted.
   NetBird (connect, serve apps with hearth's certificate authority), Headscale (install wizard, users,
   keys, join this Mac).
 - **Logins & Gateway**: turn the gateway on, add logins, **two-factor** per login, see what's published.
+  Turning the gateway on shows each step live (check tailnet → write config → download Caddy and
+  Authelia → start → publish on Tailscale) and explains any failure with **Try Again**. The toggle stays
+  off, with the reason, until Tailscale, HTTPS certificates and a login are in place.
 - **Alerts**: notification channels and what to watch.
 - **Domains & Tunnels**: your domain via Cloudflare Tunnel (from an API token), Tailscale Funnel, ngrok.
 - **Capacity**: memory reserve and disk reserve used by install checks.

@@ -192,7 +192,13 @@ Use what exists before writing new UI:
   flex children.
 - Numbers that change use `tabular-nums`.
 
-### 5.5 Accessibility
+### 5.5 Product tour
+
+The tour (`features/tour/steps.ts`) points at stable `data-tour="…"` attributes, never at classes or
+text. If you move or rename a toured element, keep its `data-tour`; if you add a major area, add a
+step. driver.js is lazy-loaded and themed in `tour.css` with Kumo tokens only.
+
+### 5.6 Accessibility
 
 - Every interactive element is a `button` or link with a visible label or `aria-label`.
 - Icons are `aria-hidden="true"`; status is never colour-only (dot + text).
@@ -201,7 +207,7 @@ Use what exists before writing new UI:
   (`one-time-code` for 2FA), and `spellCheck={false}` for URLs, tokens and IDs.
 - Motion respects reduced-motion (shared motion tokens already do).
 
-### 5.6 Copy
+### 5.7 Copy
 
 - **Buttons and titles: Title Case** ("Set Up 2FA", "Release Hold", "Install Pack").
 - Descriptions: sentence case, short, second person, what it does for you.
@@ -212,7 +218,7 @@ Use what exists before writing new UI:
 - No jargon in primary text (snapshots, digests, compose) unless the user needs it; put details in
   secondary text.
 
-### 5.7 Performance
+### 5.8 Performance
 
 Follow the installed skills `react-best-practices` and `composition-patterns`: lazy-load heavy
 features (terminal, charts), avoid prop-drilled booleans (compose components), derive instead of
