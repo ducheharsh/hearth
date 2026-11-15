@@ -12,6 +12,7 @@ import {
   ListChecksIcon,
   LockKeyIcon,
   NetworkIcon,
+  BellRingingIcon,
   WarningCircleIcon,
   WrenchIcon,
 } from "@phosphor-icons/react";
@@ -22,10 +23,11 @@ import { useSaveSettings, useSettings, useSetup } from "../../api/hooks";
 import type { Settings as SettingsT } from "../../api/types";
 import { useUrlParam } from "../../lib/url-state";
 import { AccessSection } from "./access";
+import { AlertsSection } from "./alerts";
 import { DomainsSection } from "./domains";
 import { NetworkSection } from "./network";
 
-type SectionId = "setup" | "general" | "network" | "access" | "domains" | "capacity" | "advanced";
+type SectionId = "setup" | "general" | "network" | "access" | "alerts" | "domains" | "capacity" | "advanced";
 
 const ZONES = (() => {
   try {
@@ -60,6 +62,7 @@ export function Settings() {
     { id: "general", label: "General", icon: GearSixIcon, children: kids(["Identity", "Name & time zone"], ["Directory", "App directory"]) },
     { id: "network", label: "Network", icon: NetworkIcon, children: kids(["Tailscale", "Tailscale"], ["NetBird", "NetBird"], ["Headscale", "Headscale"]) },
     { id: "access", label: "Logins & Gateway", icon: LockKeyIcon, children: kids(["Gateway", "Gateway"], ["Logins", "Logins & 2FA"], ["What gets published", "Published routes"]) },
+    { id: "alerts", label: "Alerts", icon: BellRingingIcon, children: kids(["Channels", "Channels"], ["What to watch", "What to watch"]) },
     {
       id: "domains",
       label: "Domains & Tunnels",
@@ -79,6 +82,7 @@ export function Settings() {
         {section === "network" ? <NetworkSection /> : null}
         {section === "access" ? <AccessSection /> : null}
         {section === "domains" ? <DomainsSection /> : null}
+        {section === "alerts" ? <AlertsSection /> : null}
         {draft && section === "general" ? (
           <>
             <SettingsHeader title="General" description="How this server identifies itself." />

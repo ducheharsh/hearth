@@ -46,7 +46,7 @@ impl EventLog {
         source: &'static str,
         title: impl Into<String>,
         message: impl Into<String>,
-    ) {
+    ) -> Event {
         self.next += 1;
         let e = Event {
             seq: self.next,
@@ -60,7 +60,8 @@ impl EventLog {
         if self.items.len() == KEEP {
             self.items.pop_front();
         }
-        self.items.push_back(e);
+        self.items.push_back(e.clone());
+        e
     }
 
     #[must_use]

@@ -71,6 +71,8 @@ pub struct AppState {
     pub history: RwLock<crate::history::History>,
     pub backups: RwLock<crate::backup::BackupState>,
     pub updates: RwLock<crate::updates::UpdateState>,
+    pub alerts: RwLock<crate::alerts::AlertSettings>,
+    pub alert_tx: tokio::sync::mpsc::UnboundedSender<crate::events::Event>,
     /// Serialises installs, gateway applies and other mutations.
     pub ops: Mutex<()>,
 }
@@ -112,7 +114,8 @@ impl AppState {
         title: impl Into<String>,
         msg: impl Into<String>,
     ) {
-        self.events.lock().await.push(level, source, title, msg);
+        let e = self.events.lock().await.push(level, source, title, msg);
+        let _ = self.alert_tx.send(e);
     }
 
     pub async fn ts_host(&self) -> String {

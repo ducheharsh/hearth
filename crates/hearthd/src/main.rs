@@ -4,6 +4,7 @@
 //! drives, native apps and the `tailscale` CLI. Serves a JSON API and the dashboard on
 //! loopback; the Caddy + Authelia gateway is the way in from other devices.
 
+mod alerts;
 mod api;
 mod backup;
 mod cloudflare;
@@ -86,6 +87,8 @@ async fn main() -> anyhow::Result<()> {
     let ts = hearth_host::tailscale::status().await.unwrap_or_default();
 
     let listen = config.listen;
+    let (alert_tx, alert_rx) = tokio::sync::mpsc::unbounded_channel();
+    let alert_settings = alerts::load_settings(&config.state_dir);
     let state_dir_for_history = config.state_dir.clone();
     let state = Arc::new(AppState {
         compose: ComposeRunner::new(config.apps_dir()),
@@ -107,6 +110,8 @@ async fn main() -> anyhow::Result<()> {
         history: RwLock::new(history::load(&state_dir_for_history)),
         backups: RwLock::new(backup::load(&state_dir_for_history)),
         updates: RwLock::new(updates::load(&state_dir_for_history)),
+        alerts: RwLock::new(alert_settings),
+        alert_tx,
         ops: Mutex::new(()),
     });
 
@@ -118,6 +123,9 @@ async fn main() -> anyhow::Result<()> {
     tokio::spawn(history::run_recorder(state.clone()));
     tokio::spawn(backup::run_scheduler(state.clone()));
     tokio::spawn(updates::run_checker(state.clone()));
+    tokio::spawn(alerts::run_dispatcher(state.clone(), alert_rx));
+    tokio::spawn(alerts::run_monitors(state.clone()));
+    tokio::spawn(alerts::run_login_watch(state.clone()));
 
     let listener = tokio::net::TcpListener::bind(listen)
         .await
