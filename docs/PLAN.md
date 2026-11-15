@@ -71,7 +71,7 @@ hearth UI: https://<ts-host>:9443 → Caddy → host.docker.internal:9000 (heart
       capacity verdict, install dialog with RAM projection, confirm-to-remove), Containers table
 - [x] Pets: Ember + Miso pixel sprites whose mood tracks system load and install activity
 - [x] Vendor chunk splitting; served by hearthd with SPA fallback + immutable asset caching
-- [ ] Command palette (⌘K) for apps/actions; per-app detail page with logs
+- [x] Command palette (⌘K) for apps/actions; per-app detail page with logs
 - [ ] Notifications feed (installs, capacity warnings) using Kumo toasts history
 
 ### Phase 1.6: everything requested ✅
@@ -101,6 +101,19 @@ hearth UI: https://<ts-host>:9443 → Caddy → host.docker.internal:9000 (heart
 - [x] Network: NetBird (connect, serve over internal-CA HTTPS, CA download), Headscale (install wizard, users, keys, join)
 - [x] Ember companion via agent-pet (Apache-2.0) with a runtime-rendered atlas; works around agent-pet 0.8.6 mount bug
 
+### Phase 1.8: ops suite ✅ (branch `feature/ops-suite`)
+- [x] Git repository, one commit per feature
+- [x] Per-app 7-day history; measured RAM in install checks
+- [x] Backups and restore (restic in a container; Local / S3 / B2; recovery password shown once)
+- [x] Two-factor (TOTP) enrollment per login via Authelia's storage CLI, QR + verify-before-enable
+- [x] Settings: Cloudflare-style collapsible left tree with scroll-spy
+- [x] Updates: registry digest checks, pre-update backup, health gate, automatic rollback + pin, auto-update
+- [x] Alerts: ntfy / Telegram / webhook; crash, recovery, low disk, memory pressure, failed sign-in monitors
+- [x] Packs: Local AI (native Ollama + models), Family Cloud, Media Server, Security & Privacy, Developer,
+      Home Lab, Storage & Sync; 7 new catalog apps
+- [x] PWA: manifest, icons, service worker, home-screen install
+- [x] Docs: user guide, operations, architecture, API, catalog, repo standards, contributing
+
 ### Phase 2: gateway goes live (mostly done in 1.6)
 - [ ] Bootstrap Authelia (secrets, `configuration.yml`, first user) from `hearth init`
 - [ ] `gateway::apply`: write files → `docker compose up -d` (ports changed) or `caddy reload` (routes only)
@@ -111,11 +124,11 @@ hearth UI: https://<ts-host>:9443 → Caddy → host.docker.internal:9000 (heart
 - [ ] launchd plist + `hearth install-service`
 
 ### Phase 3: operations
-- [ ] Start/stop/restart/logs per app; update (pull + recreate) with "update available" badge
-- [ ] Persist metrics history (SQLite) and per-app usage over time
-- [ ] Capacity: use *measured* per-app RAM once installed, not just declared
-- [ ] Native app support in catalog (`kind: native` → brew/launchd: Ollama, Jellyfin)
-- [ ] Backups: drive Backrest/restic per app (`APP_DATA` + vault paths)
+- [x] Start/stop/restart/logs per app; update (pull + recreate) with "update available" badge, health gate and automatic rollback
+- [x] Per-app usage over time (7-day 5-minute buckets in `history.json`; SQLite not needed)
+- [x] Capacity: use *measured* per-app RAM (p95) once installed, not just declared
+- [x] Native Ollama via packs (Homebrew + brew services, model pulls); general `kind: native` apps still open
+- [x] Backups: restic per app (`APP_DATA` + vault paths), SSD/S3/B2, retention, exact restore
 
 ### Phase 4: marketplace scale-out
 - [ ] Importer for an existing app store format (Runtipi / CasaOS) → hundreds of apps
