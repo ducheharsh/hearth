@@ -19,7 +19,7 @@ import { Field, TextInput } from "@hearth/ui/components/form";
 import { Stars } from "@hearth/ui/components/stars";
 import { StatusDot } from "@hearth/ui/components/status-dot";
 import { formatCompact, formatRelative } from "@hearth/ui/format";
-import { useAppAction, useAppHistory, useOverride, useRate, useSettings } from "../../api/hooks";
+import { useAppAction, useAppHistory, useAutoUpdate, useOverride, useRate, useSettings, useUnpin, useUpdateApp, useUpdates } from "../../api/hooks";
 import { Sparkline } from "@hearth/ui/components/sparkline";
 import { formatBytes } from "@hearth/ui/format";
 import type { CatalogApp } from "../../api/types";
@@ -129,6 +129,7 @@ export function AppSheet({ app, open, onOpenChange, onInstall, onRemove }: AppSh
           <Stars value={app.rating} onChange={(stars) => rate.mutate({ key: app.id, stars })} size={22} label={`Rate ${app.name}`} />
         </section>
 
+        {app.installed ? <Updates id={app.id} /> : null}
         {app.installed ? <Usage id={app.id} /> : null}
         {app.installed ? <AddressSettings key={app.port} app={app} domain={domain} /> : null}
         </div>
@@ -230,6 +231,52 @@ function Usage({ id }: { id: string }) {
           ? `Capacity checks use the measured ${data.measured_mb} MB instead of the ${data.estimate_mb} MB estimate.`
           : `Capacity checks use the ${data?.estimate_mb ?? "–"} MB estimate until there’s an hour of data.`}
       </p>
+    </section>
+  );
+}
+
+/** Update status, one-click update (with automatic rollback), auto-update, unpin. */
+function Updates({ id }: { id: string }) {
+  const { data } = useUpdates();
+  const update = useUpdateApp();
+  const auto = useAutoUpdate();
+  const unpin = useUnpin();
+  const info = data?.apps[id];
+  const running = data?.running.includes(id) ?? false;
+  const last = data?.history.find((h) => h.app === id);
+  const isAuto = data?.auto.includes(id) ?? false;
+  return (
+    <section className="flex flex-col gap-3 rounded-xl p-4 ring-1 ring-kumo-hairline" aria-label="Updates">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-medium">Updates</h3>
+        {running ? (
+          <Badge variant="info" appearance="dot">Updating…</Badge>
+        ) : info?.pinned ? (
+          <Badge variant="warning" appearance="dot">Held at previous version</Badge>
+        ) : info?.available ? (
+          <Badge variant="info" appearance="dot">Update available</Badge>
+        ) : (
+          <Badge variant="success" appearance="dot">Up to date</Badge>
+        )}
+      </div>
+      <p className="text-xs text-kumo-subtle text-pretty">
+        {info?.pinned
+          ? "The last update wasn’t healthy, so hearth rolled back and is holding the previous images."
+          : "Updating takes a backup first, then checks the app stays healthy. If it doesn’t, hearth rolls back automatically."}
+      </p>
+      {last ? <p className={`text-xs ${last.ok ? "text-kumo-subtle" : "text-kumo-warning"}`}>Last: {last.message}</p> : null}
+      <div className="flex flex-wrap items-center gap-3">
+        {info?.pinned ? (
+          <Button size="sm" loading={unpin.isPending} onClick={() => unpin.mutate(id)}>
+            Release Hold
+          </Button>
+        ) : (
+          <Button size="sm" variant={info?.available ? "primary" : "secondary"} loading={running || update.isPending} onClick={() => update.mutate(id)}>
+            {info?.available ? "Update Now" : "Reinstall Latest"}
+          </Button>
+        )}
+        <Switch size="sm" label="Update automatically" checked={isAuto} onCheckedChange={(v) => auto.mutate({ id, enabled: v })} />
+      </div>
     </section>
   );
 }

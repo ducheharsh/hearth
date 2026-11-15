@@ -261,3 +261,23 @@ export const useTotpStart = () => useAction((user: string) => post<TotpEnrollmen
 export const useTotpVerify = () =>
   useAction(({ user, secret, code }: { user: string; secret: string; code: string }) => post(`/gateway/users/${user}/totp/verify`, { secret, code }), [keys.users], "totp-verify");
 export const useTotpRemove = () => useAction((user: string) => del(`/gateway/users/${user}/totp`), [keys.users], "totp-remove");
+
+export interface AppUpdateInfo {
+  checked_at: number;
+  available: boolean;
+  services: { service: string; image: string; update: boolean }[];
+  error: string | null;
+  pinned: boolean;
+}
+export interface UpdatesOverview {
+  apps: Record<string, AppUpdateInfo>;
+  auto: string[];
+  history: { app: string; at: number; ok: boolean; rolled_back: boolean; message: string }[];
+  running: string[];
+}
+export const useUpdates = () => useQuery({ queryKey: ["updates"], queryFn: () => api<UpdatesOverview>("/updates"), refetchInterval: 10_000 });
+const upKeys = [["updates"], keys.catalog, keys.containers];
+export const useUpdateApp = () => useAction((id: string) => post(`/updates/${id}`), upKeys, "update-app");
+export const useCheckUpdates = () => useAction(() => post("/updates/check"), upKeys, "check-updates");
+export const useAutoUpdate = () => useAction(({ id, enabled }: { id: string; enabled: boolean }) => put(`/updates/${id}/auto`, { enabled }), upKeys, "auto-update");
+export const useUnpin = () => useAction((id: string) => post(`/updates/${id}/unpin`), upKeys, "unpin");

@@ -9,6 +9,7 @@ import { Stars } from "@hearth/ui/components/stars";
 import { StatusDot } from "@hearth/ui/components/status-dot";
 import { formatCompact } from "@hearth/ui/format";
 import { riseIn } from "@hearth/ui/motion";
+import { useUpdates } from "../../api/hooks";
 import type { CatalogApp } from "../../api/types";
 import { AppSheet } from "./app-sheet";
 import { FitBadge } from "./fit-badge";
@@ -37,6 +38,8 @@ export function useAppDialogs(app: CatalogApp) {
 
 export function AppCard({ app, index }: { app: CatalogApp; index: number }) {
   const dialogs = useAppDialogs(app);
+  const updates = useUpdates();
+  const hasUpdate = updates.data?.apps[app.id]?.available ?? false;
   return (
     <motion.div layout variants={riseIn} custom={index} initial="hidden" animate="show" exit="exit">
       <InteractiveCard className="flex h-full flex-col gap-3">
@@ -78,6 +81,11 @@ export function AppCard({ app, index }: { app: CatalogApp; index: number }) {
             </span>
           ) : null}
           {app.rating ? <Stars value={app.rating} size={11} /> : null}
+          {app.installed && hasUpdate ? (
+            <button type="button" onClick={() => dialogs.open("sheet")} className="font-medium text-kumo-link hover:underline">
+              Update available
+            </button>
+          ) : null}
         </div>
 
         <div className="mt-auto flex items-center gap-2 pt-1">

@@ -422,6 +422,30 @@ impl DockerClient {
     }
 }
 
+impl DockerClient {
+    /// `repo@sha256:…` digests the local copy of `image` is known by.
+    pub async fn local_digests(&self, image: &str) -> Result<Vec<String>, DockerError> {
+        Ok(self
+            .inner
+            .inspect_image(image)
+            .await?
+            .repo_digests
+            .unwrap_or_default())
+    }
+
+    /// Digest the registry currently serves for `image` (no download).
+    pub async fn remote_digest(&self, image: &str) -> Result<Option<String>, DockerError> {
+        let d = self.inner.inspect_registry_image(image, None).await?;
+        Ok(d.descriptor.digest)
+    }
+}
+
+/// Is `remote` (a bare `sha256:…`) among the local `repo@sha256:…` digests?
+#[must_use]
+pub fn has_digest(local: &[String], remote: &str) -> bool {
+    local.iter().any(|d| d.rsplit('@').next() == Some(remote))
+}
+
 /// Same formula as the Docker CLI.
 #[allow(clippy::cast_precision_loss)]
 fn cpu_percent(total: u64, pre_total: u64, sys: u64, pre_sys: u64, cpus: f64) -> f64 {
@@ -437,6 +461,14 @@ fn cpu_percent(total: u64, pre_total: u64, sys: u64, pre_sys: u64, cpus: f64) ->
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn digest_matching() {
+        let local = vec!["louislam/uptime-kuma@sha256:abc".to_owned()];
+        assert!(has_digest(&local, "sha256:abc"));
+        assert!(!has_digest(&local, "sha256:def"));
+        assert!(!has_digest(&[], "sha256:abc"));
+    }
 
     #[test]
     fn redacts_secret_env() {

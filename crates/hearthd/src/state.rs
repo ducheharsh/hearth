@@ -70,6 +70,7 @@ pub struct AppState {
     pub search: RwLock<Option<hearth_search::SearchIndex>>,
     pub history: RwLock<crate::history::History>,
     pub backups: RwLock<crate::backup::BackupState>,
+    pub updates: RwLock<crate::updates::UpdateState>,
     /// Serialises installs, gateway applies and other mutations.
     pub ops: Mutex<()>,
 }

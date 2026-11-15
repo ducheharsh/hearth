@@ -23,7 +23,7 @@ import { StatusDot } from "@hearth/ui/components/status-dot";
 import { formatBytes, formatDuration, formatNumber, formatPercent, formatRelative } from "@hearth/ui/format";
 import { riseIn } from "@hearth/ui/motion";
 import { api } from "../../api/client";
-import { useCatalog, useContainers, useSetup, useStorage, useSystem, useTailscale } from "../../api/hooks";
+import { useCatalog, useContainers, useSetup, useStorage, useSystem, useTailscale, useUpdates } from "../../api/hooks";
 import type { HearthEvent, SystemSample } from "../../api/types";
 import { navigate } from "../../lib/url-state";
 
@@ -48,6 +48,11 @@ function useIssues(s: SystemSample | null | undefined): Issue[] {
     if (root && root.free / root.total < 0.08) issues.push({ text: `Internal disk is almost full (${formatBytes(root.free)} free).`, action: "Details", go: { tab: "overview" } });
     if (s.swap_total > 0 && s.swap_used / s.swap_total > 0.6) issues.push({ text: "Memory is under pressure (heavy swapping). Stop an app or add RAM headroom.", action: "Containers", go: { tab: "containers" } });
   }
+  const updates = useUpdates();
+  const pinned = Object.values(updates.data?.apps ?? {}).filter((a) => a.pinned).length;
+  const avail = Object.values(updates.data?.apps ?? {}).filter((a) => a.available && !a.pinned).length;
+  if (pinned) issues.push({ text: `${pinned} app${pinned > 1 ? "s were" : " was"} rolled back after an unhealthy update.`, action: "Apps", go: { tab: "apps", view: "all" } });
+  if (avail) issues.push({ text: `${avail} app update${avail > 1 ? "s" : ""} available.`, action: "Review", go: { tab: "apps", view: "all" } });
   const todo = setup.data?.filter((c) => c.state === "todo").length ?? 0;
   if (todo > 0) issues.push({ text: `${todo} setup step${todo > 1 ? "s" : ""} left before your apps are reachable from your devices.`, action: "Finish setup", go: { tab: "settings", section: "setup" } });
   return issues;

@@ -21,6 +21,7 @@ mod storage;
 mod store;
 mod tunnels;
 mod twofa;
+mod updates;
 mod web;
 
 use std::path::PathBuf;
@@ -105,6 +106,7 @@ async fn main() -> anyhow::Result<()> {
         search: RwLock::new(None),
         history: RwLock::new(history::load(&state_dir_for_history)),
         backups: RwLock::new(backup::load(&state_dir_for_history)),
+        updates: RwLock::new(updates::load(&state_dir_for_history)),
         ops: Mutex::new(()),
     });
 
@@ -115,6 +117,7 @@ async fn main() -> anyhow::Result<()> {
     tokio::spawn(search::run_indexer(state.clone()));
     tokio::spawn(history::run_recorder(state.clone()));
     tokio::spawn(backup::run_scheduler(state.clone()));
+    tokio::spawn(updates::run_checker(state.clone()));
 
     let listener = tokio::net::TcpListener::bind(listen)
         .await
