@@ -130,8 +130,10 @@ Download **[Hearth.dmg](https://github.com/ducheharsh/hearth/releases/latest)**,
 Applications. On first launch it starts hearth in the background and adds an Ember icon to the menu bar
 (Open Dashboard, copy your server address, start at login).
 
-> The app isn't notarized yet. The first time, right-click **Hearth** → **Open**, or allow it in
-> System Settings → Privacy & Security.
+> **macOS will block it the first time** ("Apple could not verify 'Hearth'…") because the app isn't
+> notarized yet. Click **Done**, then open **System Settings → Privacy & Security**, scroll down and click
+> **Open Anyway** next to "Hearth was blocked", and confirm. You only do this once.
+> Prefer the terminal? `xattr -dr com.apple.quarantine /Applications/Hearth.app`, or use Homebrew below.
 
 ### Option 2: Homebrew
 

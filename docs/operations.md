@@ -21,8 +21,14 @@ Running hearth on the Mac, where things live, and what to do when something brea
 Use one login service, not two: the app and `hearthd service install` refuse to install when the
 Homebrew service exists.
 
-The app isn't notarized yet. On first open, right-click → **Open** (or System Settings → Privacy &
-Security → **Open Anyway**). From a terminal: `xattr -dr com.apple.quarantine /Applications/Hearth.app`.
+The app isn't notarized yet, so macOS 15 blocks the first open ("Apple could not verify 'Hearth'…";
+the old right-click → Open shortcut no longer exists). Click **Done**, then System Settings →
+Privacy & Security → **Open Anyway** next to "Hearth was blocked". From a terminal:
+`xattr -dr com.apple.quarantine /Applications/Hearth.app`. Homebrew's formula isn't affected.
+
+On first run the app installs the login service, waits for hearth to answer and says so (or explains
+why it couldn't start, e.g. port 9000 in use). Opening Hearth again goes to the dashboard, which helps
+when the menu bar icon is hidden behind the notch.
 
 ### The binary
 

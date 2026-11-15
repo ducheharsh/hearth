@@ -66,7 +66,7 @@ export function Overview() {
   const memSeries = useMemo(() => data?.history.map((p) => p.mem_used) ?? [], [data?.history]);
 
   if (error) {
-    return <Banner variant="error" icon={<WarningIcon />} title="Can’t reach hearthd" description={`${error.message}. Check that the daemon is running on port 9000.`} />;
+    return <Banner variant="error" icon={<WarningIcon />} title="hearth isn’t running" description="Open the Hearth app (it starts it), or run `hearthd service install` / `brew services start hearth`." />;
   }
   if (isPending || !s) {
     return (

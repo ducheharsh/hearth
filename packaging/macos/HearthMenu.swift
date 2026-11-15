@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let statusLine = NSMenuItem(title: "Checking…", action: nil, keyEquivalent: "")
     private let addressLine = NSMenuItem(title: "", action: #selector(copyAddress), keyEquivalent: "c")
     private let loginItem = NSMenuItem(title: "Start hearth at Login", action: #selector(toggleService), keyEquivalent: "")
+    private let startItem = NSMenuItem(title: "Start hearth", action: #selector(startFromMenu), keyEquivalent: "s")
     private var running = false
     private var address: String?
     private var timer: Timer?
@@ -43,6 +44,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         addressLine.target = self
         loginItem.target = self
         menu.addItem(statusLine)
+        startItem.target = self
+        startItem.isHidden = true
+        menu.addItem(startItem)
         menu.addItem(addressLine)
         menu.addItem(.separator())
         menu.addItem(withTitle: "Open Dashboard", action: #selector(openDashboard), keyEquivalent: "o").target = self
@@ -62,9 +66,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // a dev build, an earlier install) is already answering.
         get("/health") { (h: Health?) in
             if h == nil && !FileManager.default.fileExists(atPath: self.plist.path) && !self.brewService {
-                self.run(self.daemon, ["service", "install"])
+                self.startDaemon(welcome: true)
+            } else {
+                self.refresh()
             }
-            self.refresh()
         }
         timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in self?.refresh() }
     }
@@ -76,10 +81,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         if here.path.hasPrefix("/Applications/") || here.path.hasPrefix(home + "/Applications/") { return false }
         let alert = NSAlert()
-        alert.messageText = "Move Hearth to Applications?"
-        alert.informativeText = "hearth runs in the background from here, so it needs to live in your Applications folder."
+        alert.messageText = "Install Hearth in Applications"
+        alert.informativeText = "Hearth isn't running yet. To keep your server running in the background it needs to live in your Applications folder."
         alert.addButton(withTitle: "Move to Applications")
-        alert.addButton(withTitle: "Quit")
+        alert.addButton(withTitle: "Cancel")
         NSApp.activate(ignoringOtherApps: true)
         guard alert.runModal() == .alertFirstButtonReturn else { NSApp.terminate(nil); return true }
         let dest = URL(fileURLWithPath: "/Applications/Hearth.app")
@@ -98,6 +103,63 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
+    /// Install the login service, wait for hearth to answer, then say so clearly.
+    private func startDaemon(welcome: Bool) {
+        statusLine.title = "Starting hearth…"
+        run(daemon, ["service", "install"])
+        waitForHealth(tries: 20) { ok in
+            self.refresh()
+            if ok {
+                guard welcome, !UserDefaults.standard.bool(forKey: "welcomed") else { return }
+                UserDefaults.standard.set(true, forKey: "welcomed")
+                let a = NSAlert()
+                a.messageText = "hearth is running"
+                a.informativeText = "It keeps running in the background and starts when you log in. Find it under the flame 🔥 in your menu bar.\n\nIf your menu bar is full, open Hearth from Applications to get back to the dashboard."
+                a.addButton(withTitle: "Open Dashboard")
+                a.addButton(withTitle: "Later")
+                NSApp.activate(ignoringOtherApps: true)
+                if a.runModal() == .alertFirstButtonReturn { self.openDashboard() }
+            } else {
+                let a = NSAlert()
+                a.alertStyle = .warning
+                a.messageText = "hearth couldn’t start"
+                a.informativeText = self.lastError() ?? "Check the logs for details."
+                a.addButton(withTitle: "Show Logs")
+                a.addButton(withTitle: "OK")
+                NSApp.activate(ignoringOtherApps: true)
+                if a.runModal() == .alertFirstButtonReturn { self.showLogs() }
+            }
+        }
+    }
+
+    private func waitForHealth(tries: Int, _ done: @escaping (Bool) -> Void) {
+        get("/health") { (h: Health?) in
+            if h?.ok == true { done(true) }
+            else if tries <= 0 { done(false) }
+            else { DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.waitForHealth(tries: tries - 1, done) } }
+        }
+    }
+
+    /// A plain-language reason from the end of the log, if there is one.
+    private func lastError() -> String? {
+        let log = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".hearth/logs/hearthd.log")
+        guard let text = try? String(contentsOf: log, encoding: .utf8) else { return nil }
+        let tail = text.split(separator: "\n").suffix(20).joined(separator: "\n")
+        if tail.contains("Address already in use") {
+            return "Port 9000 is already in use, probably by another copy of hearth (Homebrew or a dev build). Stop it, then choose Start hearth from the menu."
+        }
+        if let line = tail.split(separator: "\n").last(where: { $0.hasPrefix("Error:") }) { return String(line) }
+        return nil
+    }
+
+    @objc private func startFromMenu() { startDaemon(welcome: false) }
+
+    /// Opening Hearth again (Launchpad, Spotlight, Finder) goes to the dashboard.
+    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
+        if running { openDashboard() } else { item.button?.performClick(nil) }
+        return false
+    }
+
     private func refresh() {
         loginItem.state = (FileManager.default.fileExists(atPath: plist.path) || brewService) ? .on : .off
         if #available(macOS 13.0, *) {
@@ -106,6 +168,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         get("/health") { (h: Health?) in
             self.running = h?.ok == true
             self.statusLine.title = self.running ? "● hearth \(h?.version ?? "") is running" : "○ hearth is not running"
+            self.startItem.isHidden = self.running
             self.item.button?.appearsDisabled = !self.running
         }
         get("/access") { (a: Access?) in
