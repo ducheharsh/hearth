@@ -16,7 +16,7 @@ import {
   WrenchIcon,
 } from "@phosphor-icons/react";
 import { SearchSelect, TextInput } from "@hearth/ui/components/form";
-import { SaveBar, SettingRow, SettingsGroup, SettingsHeader, SettingsLayout, type SettingsNavItem } from "@hearth/ui/components/settings";
+import { SaveBar, SettingRow, SettingsGroup, SettingsHeader, SettingsLayout, groupId, type SettingsNavItem } from "@hearth/ui/components/settings";
 import { springSoft } from "@hearth/ui/motion";
 import { useSaveSettings, useSettings, useSetup } from "../../api/hooks";
 import type { Settings as SettingsT } from "../../api/types";
@@ -53,14 +53,21 @@ export function Settings() {
   const todo = setup.data?.filter((c) => c.state === "todo").length ?? 0;
   const { data, draft, setDraft, dirty, save } = useDraft();
 
+  // Each child points at a SettingsGroup by its exact title.
+  const kids = (...pairs: [string, string][]) => pairs.map(([title, label]) => ({ id: groupId(title), label }));
   const items: SettingsNavItem[] = [
     { id: "setup", label: "Setup", icon: ListChecksIcon, badge: todo > 0 ? todo : undefined },
-    { id: "general", label: "General", icon: GearSixIcon },
-    { id: "network", label: "Network", icon: NetworkIcon },
-    { id: "access", label: "Logins & Gateway", icon: LockKeyIcon },
-    { id: "domains", label: "Domains & Tunnels", icon: CloudIcon },
-    { id: "capacity", label: "Capacity", icon: GaugeIcon },
-    { id: "advanced", label: "Advanced", icon: WrenchIcon },
+    { id: "general", label: "General", icon: GearSixIcon, children: kids(["Identity", "Name & time zone"], ["Directory", "App directory"]) },
+    { id: "network", label: "Network", icon: NetworkIcon, children: kids(["Tailscale", "Tailscale"], ["NetBird", "NetBird"], ["Headscale", "Headscale"]) },
+    { id: "access", label: "Logins & Gateway", icon: LockKeyIcon, children: kids(["Gateway", "Gateway"], ["Logins", "Logins & 2FA"], ["What gets published", "Published routes"]) },
+    {
+      id: "domains",
+      label: "Domains & Tunnels",
+      icon: CloudIcon,
+      children: kids(["Your domain (Cloudflare)", "Cloudflare"], ["Tailscale Funnel", "Tailscale Funnel"], ["ngrok", "ngrok"]),
+    },
+    { id: "capacity", label: "Capacity", icon: GaugeIcon, children: kids(["Memory", "Memory"], ["Disk & drives", "Disk & drives"]) },
+    { id: "advanced", label: "Advanced", icon: WrenchIcon, children: kids(["Lock down the dashboard", "Lock down"]) },
   ];
 
   const set = <K extends keyof SettingsT>(k: K, v: SettingsT[K]) => draft && setDraft({ ...draft, [k]: v });
