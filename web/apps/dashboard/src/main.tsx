@@ -32,3 +32,12 @@ createRoot(root).render(
     </ThemeProvider>
   </StrictMode>,
 );
+
+// Installable app + instant reloads. Dev skips it so Vite's HMR isn't cached.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    void navigator.serviceWorker.register("/sw.js").catch(() => {
+      // Plain HTTP (not localhost) has no service workers; the dashboard still works.
+    });
+  });
+}
