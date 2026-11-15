@@ -251,3 +251,13 @@ export const useBackupInit = () => useAction(() => post<{ password: string }>("/
 export const useBackupRun = () => useAction((app: string | null) => post("/backups/run", { app }), [["backups"]], "backup-run");
 export const useRestore = () =>
   useAction(({ id, snapshot }: { id: string; snapshot: string }) => post(`/backups/${id}/restore`, { snapshot }), [["backups"], ["snapshots"], keys.catalog], "restore");
+
+export interface TotpEnrollment {
+  uri: string;
+  secret: string;
+  qr_svg: string;
+}
+export const useTotpStart = () => useAction((user: string) => post<TotpEnrollment>(`/gateway/users/${user}/totp`), [keys.users], "totp-start");
+export const useTotpVerify = () =>
+  useAction(({ user, secret, code }: { user: string; secret: string; code: string }) => post(`/gateway/users/${user}/totp/verify`, { secret, code }), [keys.users], "totp-verify");
+export const useTotpRemove = () => useAction((user: string) => del(`/gateway/users/${user}/totp`), [keys.users], "totp-remove");

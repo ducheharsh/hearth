@@ -32,6 +32,10 @@ argon2 = "0.6"
 # embedded full-text search (BM25, fuzzy, prefix)
 tantivy = { version = "0.27", default-features = false }
 
+# 2FA enrollment: QR codes + TOTP verification
+qrcode = { version = "0.14", default-features = false, features = ["svg"] }
+totp-rs = "6"
+
 # embedded web UI
 rust-embed = { version = "8.14", features = ["mime-guess"] }
 

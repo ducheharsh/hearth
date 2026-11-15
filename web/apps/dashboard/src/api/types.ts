@@ -285,6 +285,7 @@ export interface GatewayUser {
   username: string;
   display_name: string;
   email: string;
+  totp: boolean;
 }
 
 export interface CloudflareStatus {

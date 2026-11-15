@@ -3,11 +3,13 @@ import { Banner } from "@cloudflare/kumo/components/banner";
 import { Button } from "@cloudflare/kumo/components/button";
 import { Switch } from "@cloudflare/kumo/components/switch";
 import { Tabs } from "@cloudflare/kumo/components/tabs";
-import { ArrowsClockwiseIcon, TrashIcon, UserPlusIcon } from "@phosphor-icons/react";
+import { ArrowsClockwiseIcon, DeviceMobileIcon, TrashIcon, UserPlusIcon } from "@phosphor-icons/react";
+import { Badge } from "@cloudflare/kumo/components/badge";
 import { TextInput } from "@hearth/ui/components/form";
 import { SettingRow, SettingsGroup, SettingsHeader } from "@hearth/ui/components/settings";
 import { StatusDot } from "@hearth/ui/components/status-dot";
-import { useAddUser, useDeleteUser, useGateway, useGatewayAction, useTailscale, useUsers } from "../../api/hooks";
+import { useAddUser, useDeleteUser, useGateway, useGatewayAction, useTailscale, useTotpRemove, useUsers } from "../../api/hooks";
+import { TwoFactorDialog } from "./two-factor";
 
 export function AccessSection() {
   const gw = useGateway();
@@ -74,16 +76,40 @@ function Logins() {
   const users = useUsers();
   const add = useAddUser();
   const remove = useDeleteUser();
+  const totpRemove = useTotpRemove();
+  const [enroll, setEnroll] = useState<string | null>(null);
   const [u, setU] = useState({ username: "", display_name: "", email: "", password: "" });
   const submit = (e: FormEvent) => {
     e.preventDefault();
     add.mutate(u, { onSuccess: () => setU({ username: "", display_name: "", email: "", password: "" }) });
   };
   return (
-    <SettingsGroup title="Logins" description="Everyone who can use your apps. Passwords are hashed with argon2id; 2FA is set up on first sign-in.">
+    <SettingsGroup
+      title="Logins"
+      description="Everyone who can use your apps. Passwords are hashed with argon2id. Two-factor uses an authenticator app; passkeys can also be added on the sign-in page."
+      footer={totpRemove.error ? <span className="text-kumo-danger">{totpRemove.error.message}</span> : undefined}
+    >
+      {enroll ? <TwoFactorDialog user={enroll} onClose={() => setEnroll(null)} /> : null}
       {users.data?.map((x) => (
         <SettingRow key={x.username} label={x.display_name} description={`${x.username} · ${x.email}`}>
-          <Button size="xs" variant="ghost" shape="square" icon={<TrashIcon />} aria-label={`Delete ${x.username}`} loading={remove.isPending} onClick={() => remove.mutate(x.username)} />
+          <span className="flex items-center gap-2">
+            {x.totp ? (
+              <>
+                <Badge variant="success" appearance="dot">2FA on</Badge>
+                <Button size="xs" variant="ghost" onClick={() => setEnroll(x.username)}>
+                  Reset
+                </Button>
+                <Button size="xs" variant="ghost" loading={totpRemove.isPending} onClick={() => totpRemove.mutate(x.username)}>
+                  Remove
+                </Button>
+              </>
+            ) : (
+              <Button size="xs" variant="secondary" icon={<DeviceMobileIcon />} onClick={() => setEnroll(x.username)}>
+                Set Up 2FA
+              </Button>
+            )}
+            <Button size="xs" variant="ghost" shape="square" icon={<TrashIcon />} aria-label={`Delete ${x.username}`} loading={remove.isPending} onClick={() => remove.mutate(x.username)} />
+          </span>
         </SettingRow>
       ))}
       <SettingRow label="Add or update a login" description="Typing an existing username changes its password." stack>

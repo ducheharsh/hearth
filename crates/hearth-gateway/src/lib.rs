@@ -407,6 +407,9 @@ pub struct User {
     pub email: String,
     /// PHC-format argon2id hash.
     pub password_hash: String,
+    /// An authenticator app has been enrolled and verified.
+    #[serde(default)]
+    pub totp: bool,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -451,6 +454,7 @@ pub fn new_user(
         },
         email: email.to_owned(),
         password_hash: hash_password(password, salt)?,
+        totp: false,
     })
 }
 

@@ -20,6 +20,7 @@ mod state;
 mod storage;
 mod store;
 mod tunnels;
+mod twofa;
 mod web;
 
 use std::path::PathBuf;

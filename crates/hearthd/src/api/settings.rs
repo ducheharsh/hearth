@@ -30,6 +30,11 @@ pub fn routes() -> Router<SharedState> {
         .route("/gateway/apply", post(gw_apply))
         .route("/gateway/users", get(users).post(add_user))
         .route("/gateway/users/{name}", delete(delete_user))
+        .route(
+            "/gateway/users/{name}/totp",
+            post(totp_start).delete(totp_remove),
+        )
+        .route("/gateway/users/{name}/totp/verify", post(totp_verify))
         .route("/cloudflare", get(cf_status))
         .route("/cloudflare/connect", post(cf_connect))
         .route("/cloudflare/disconnect", post(cf_disconnect))
@@ -254,6 +259,9 @@ async fn add_user(
     let path = st.config.gateway_dir().join("users.json");
     let mut list = gateway::load_users(&st).map_err(internal)?;
     let replaced = list.iter().any(|x| x.username == user.username);
+    // Changing a password keeps an existing authenticator enrollment.
+    let mut user = user;
+    user.totp = list.iter().any(|x| x.username == user.username && x.totp);
     list.retain(|x| x.username != user.username);
     let name = user.username.clone();
     list.push(user);
@@ -568,5 +576,37 @@ async fn hs_join_self(
         url,
     )
     .await;
+    Ok(Json(json!({ "ok": true })))
+}
+
+async fn totp_start(
+    State(st): State<SharedState>,
+    Path(name): Path<String>,
+) -> Result<Json<crate::twofa::Enrollment>, ApiError> {
+    Ok(Json(crate::twofa::start(&st, &name).await.map_err(err)?))
+}
+
+#[derive(Deserialize)]
+struct TotpVerify {
+    secret: String,
+    code: String,
+}
+
+async fn totp_verify(
+    State(st): State<SharedState>,
+    Path(name): Path<String>,
+    Json(v): Json<TotpVerify>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    crate::twofa::verify(&st, &name, &v.secret, &v.code)
+        .await
+        .map_err(err)?;
+    Ok(Json(json!({ "ok": true })))
+}
+
+async fn totp_remove(
+    State(st): State<SharedState>,
+    Path(name): Path<String>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    crate::twofa::remove(&st, &name).await.map_err(err)?;
     Ok(Json(json!({ "ok": true })))
 }
