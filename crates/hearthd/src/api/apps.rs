@@ -237,12 +237,28 @@ async fn install(
     }
 
     let _ops = st.ops.lock().await;
+    let (plan, gw) = deploy(&st, &app, config.as_ref()).await.map_err(internal)?;
+    Ok(Json(json!({
+        "installed": id, "verdict": verdict, "plan": plan,
+        "gateway": gw.map_err(|e| format!("{e:#}")),
+    })))
+}
+
+/// Install (or re-deploy) an app whose compose is already resolved. Caller holds `st.ops`.
+pub(crate) async fn deploy(
+    st: &SharedState,
+    app: &AppManifest,
+    config: Option<&AppConfig>,
+) -> anyhow::Result<(
+    hearth_host::compose::InstallPlan,
+    anyhow::Result<crate::gateway::Outcome>,
+)> {
     let env = st.compose_env().await;
-    let plan = st.compose.install(&app, &env).await.map_err(internal)?;
-    if let Some(cfg) = &config {
-        store::save(&config_path(&st, &id), &Some(cfg)).map_err(internal)?;
+    let plan = st.compose.install(app, &env).await?;
+    if let Some(cfg) = config {
+        store::save(&config_path(st, &app.id), &Some(cfg))?;
     }
-    let gw = gateway::apply(&st).await;
+    let gw = gateway::apply(st).await;
     st.event(
         Level::Success,
         "apps",
@@ -250,10 +266,18 @@ async fn install(
         "It's running.",
     )
     .await;
-    Ok(Json(json!({
-        "installed": id, "verdict": verdict, "plan": plan,
-        "gateway": gw.map_err(|e| format!("{e:#}")),
-    })))
+    Ok((plan, gw))
+}
+
+/// Resolve an app's compose with its saved config, ready for [`deploy`].
+pub(crate) async fn prepared(
+    st: &SharedState,
+    id: &str,
+) -> Result<(AppManifest, Option<AppConfig>), ApiError> {
+    let mut app = manifest(st, id).await?;
+    let config = load_config(st, id);
+    app.compose = compose_config::resolve(&app.compose, config.as_ref()).map_err(bad)?;
+    Ok((app, config))
 }
 
 async fn remove(

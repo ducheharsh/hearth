@@ -13,6 +13,7 @@ pub mod catalog;
 pub mod compose_config;
 pub mod discover;
 pub mod manifest;
+pub mod pack;
 pub mod storage;
 
 pub use capacity::{CapacityPolicy, Fit, HostSnapshot, Verdict};

@@ -922,6 +922,7 @@ dependencies = [
  "futures-util",
  "hearth-core",
  "plist",
+ "reqwest",
  "serde",
  "serde_json",
  "sysinfo",

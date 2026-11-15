@@ -6,7 +6,7 @@
 
 use serde::Serialize;
 
-use crate::manifest::AppManifest;
+use crate::manifest::{AppManifest, Resources};
 
 const MIB: u64 = 1024 * 1024;
 const GIB: u64 = 1024 * MIB;
@@ -85,7 +85,17 @@ impl Verdict {
 /// ```
 #[must_use]
 pub fn evaluate(app: &AppManifest, host: &HostSnapshot, policy: &CapacityPolicy) -> Verdict {
-    let need = app.resources.ram_mb * MIB;
+    evaluate_resources(&app.resources, host, policy)
+}
+
+/// [`evaluate`] for a bare set of resources (e.g. a whole pack).
+#[must_use]
+pub fn evaluate_resources(
+    res: &Resources,
+    host: &HostSnapshot,
+    policy: &CapacityPolicy,
+) -> Verdict {
+    let need = res.ram_mb * MIB;
     let mem_after = to_i64(host.mem_available) - to_i64(need);
     let mut v = Verdict {
         fit: Fit::Ok,
@@ -136,17 +146,17 @@ pub fn evaluate(app: &AppManifest, host: &HostSnapshot, policy: &CapacityPolicy)
     }
 
     // ── Vault ──
-    if app.resources.needs_vault {
+    if res.needs_vault {
         match host.vault_free {
             None => v.raise(
                 Fit::Deny,
                 "needs the external SSD, which is not mounted".into(),
             ),
-            Some(free) if free < app.resources.vault_gb * GIB => v.raise(
+            Some(free) if free < res.vault_gb * GIB => v.raise(
                 Fit::Warn,
                 format!(
                     "Expects ~{} GB of storage but the SSD has {} free",
-                    app.resources.vault_gb,
+                    res.vault_gb,
                     human(free)
                 ),
             ),

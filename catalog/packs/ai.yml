@@ -1,0 +1,22 @@
+id: ai
+name: Local AI
+tagline: A private ChatGPT that runs on this Mac
+description: >-
+  Everything for local AI in one go. Ollama runs natively so models use the M1's GPU,
+  Open WebUI gives you a ChatGPT-style app (chat, document Q&A, voice), and SearXNG
+  adds private web search. Nothing leaves your machine.
+icon: brain
+apps:
+  - { id: open-webui, role: "Chat app with document Q&A and voice" }
+  - { id: searxng, role: "Private web search" }
+  - { id: n8n, role: "AI agents and automations", optional: true }
+ollama:
+  models:
+    - { name: "llama3.2:3b", role: "Everyday chat model", size_mb: 2000, ram_mb: 3000 }
+    - { name: nomic-embed-text, role: "Embeddings for chatting with your documents", size_mb: 274, ram_mb: 400 }
+    - { name: "qwen2.5-coder:3b", role: "Coding help", size_mb: 1900, ram_mb: 2900, optional: true }
+    - { name: "gemma3:4b", role: "Understands images", size_mb: 3300, ram_mb: 4500, optional: true }
+next_steps:
+  - Open Open WebUI and create your account. The first account becomes the admin.
+  - Pick llama3.2:3b from the model menu and say hi.
+  - Drop a PDF into a chat to ask questions about it.

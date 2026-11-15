@@ -1,0 +1,19 @@
+id: searxng
+name: SearXNG
+description: Private metasearch. Results from Google, Bing, DuckDuckGo and more, with no tracking.
+category: productivity
+website: https://docs.searxng.org
+repo: searxng/searxng
+port: 8085
+upstream: { service: searxng, port: 8080 }
+resources: { ram_mb: 150 }
+compose: |
+  services:
+    searxng:
+      image: docker.io/searxng/searxng:latest
+      restart: unless-stopped
+      environment:
+        SEARXNG_BASE_URL: https://${TS_HOST}:8085/
+        SEARXNG_SECRET: ${APP_SECRET}
+      volumes:
+        - ${APP_DATA}:/etc/searxng

@@ -1,0 +1,21 @@
+id: jellyfin
+name: Jellyfin
+description: Stream your movies, shows and music to any screen. Reads your Media drive.
+category: media
+website: https://jellyfin.org
+repo: jellyfin/jellyfin
+port: 8096
+upstream: { service: jellyfin, port: 8096 }
+resources: { ram_mb: 500 }
+compose: |
+  services:
+    jellyfin:
+      image: docker.io/jellyfin/jellyfin:latest
+      restart: unless-stopped
+      environment:
+        TZ: ${TZ}
+        JELLYFIN_PublishedServerUrl: https://${TS_HOST}:8096
+      volumes:
+        - ${APP_DATA}/config:/config
+        - ${APP_DATA}/cache:/cache
+        - ${MEDIA}:/media:ro

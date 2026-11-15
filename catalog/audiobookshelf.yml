@@ -1,0 +1,21 @@
+id: audiobookshelf
+name: Audiobookshelf
+description: Audiobooks and podcasts with progress sync across devices.
+category: media
+website: https://www.audiobookshelf.org
+repo: advplyr/audiobookshelf
+port: 13378
+upstream: { service: audiobookshelf, port: 80 }
+resources: { ram_mb: 200 }
+compose: |
+  services:
+    audiobookshelf:
+      image: ghcr.io/advplyr/audiobookshelf:latest
+      restart: unless-stopped
+      environment:
+        TZ: ${TZ}
+      volumes:
+        - ${APP_DATA}/config:/config
+        - ${APP_DATA}/metadata:/metadata
+        - ${MEDIA}/audiobooks:/audiobooks
+        - ${MEDIA}/podcasts:/podcasts

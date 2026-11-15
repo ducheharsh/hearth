@@ -1,0 +1,14 @@
+id: home-lab
+name: Home Lab
+tagline: A start page, monitoring and DNS for your network
+description: >-
+  The classic home lab starter: a start page for everything you run, uptime
+  monitoring with status pages, and your own DNS server with ad blocking.
+icon: hard-drives
+apps:
+  - { id: homepage, role: "Start page for all your services" }
+  - { id: uptime-kuma, role: "Uptime monitoring and status pages" }
+  - { id: adguard-home, role: "Your own DNS with ad blocking" }
+  - { id: syncthing, role: "Sync configs and files between machines", optional: true }
+next_steps:
+  - Add your services to Homepage's services.yaml (in the app's data folder).

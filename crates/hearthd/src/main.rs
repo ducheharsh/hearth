@@ -15,6 +15,7 @@ mod events;
 mod gateway;
 mod headscale;
 mod history;
+mod packs;
 mod search;
 mod settings;
 mod state;
@@ -71,6 +72,8 @@ async fn main() -> anyhow::Result<()> {
         Vec::new()
     });
     let catalog = Catalog::from_manifests(builtin.iter().cloned().chain(custom))?;
+    let pack_list = packs::load(&config.catalog_dir.join("packs"), &catalog);
+    tracing::info!(packs = pack_list.len(), "packs loaded");
     tracing::info!(apps = catalog.len(), "catalog loaded");
 
     let docker = match DockerClient::connect().await {
@@ -111,6 +114,8 @@ async fn main() -> anyhow::Result<()> {
         backups: RwLock::new(backup::load(&state_dir_for_history)),
         updates: RwLock::new(updates::load(&state_dir_for_history)),
         alerts: RwLock::new(alert_settings),
+        packs: pack_list,
+        pack_jobs: RwLock::new(packs::Jobs::default()),
         alert_tx,
         ops: Mutex::new(()),
     });

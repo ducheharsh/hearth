@@ -1,0 +1,14 @@
+id: media
+name: Media Server
+tagline: Your own Netflix, Spotify and Audible
+description: >-
+  Stream movies, shows, music and audiobooks from your Media drive to TVs, phones and
+  browsers. Put files in Movies, Shows, music and audiobooks folders.
+icon: film-strip
+apps:
+  - { id: jellyfin, role: "Movies and TV on every screen" }
+  - { id: navidrome, role: "Music streaming with Subsonic apps" }
+  - { id: audiobookshelf, role: "Audiobooks and podcasts", optional: true }
+next_steps:
+  - Attach a drive as Media in Storage first.
+  - In Jellyfin, add libraries pointing at /media.

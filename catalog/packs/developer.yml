@@ -1,0 +1,11 @@
+id: developer
+name: Developer
+tagline: Git hosting, automations and monitoring
+description: >-
+  Host your repositories privately, wire up webhooks and automations, and keep an eye
+  on your services.
+icon: code
+apps:
+  - { id: forgejo, role: "Git hosting with issues and pull requests" }
+  - { id: n8n, role: "Automations and webhooks" }
+  - { id: uptime-kuma, role: "Uptime monitoring and status pages" }

@@ -1,0 +1,15 @@
+id: security
+name: Security & Privacy
+tagline: Block trackers, own your passwords, know when things break
+description: >-
+  Network-wide ad and tracker blocking for every device, a password manager you
+  control, and monitoring that pings you when something goes down. Pair it with
+  two-factor logins in Settings.
+icon: shield-check
+apps:
+  - { id: adguard-home, role: "Block ads and trackers for every device" }
+  - { id: vaultwarden, role: "Password manager (Bitwarden apps)" }
+  - { id: uptime-kuma, role: "Alerts when a site or service goes down", optional: true }
+next_steps:
+  - Point your router's DNS (or Tailscale DNS) at this Mac to protect every device.
+  - Turn on two-factor for every login in Settings → Logins & Gateway.

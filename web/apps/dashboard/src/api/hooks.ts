@@ -281,3 +281,45 @@ export const useUpdateApp = () => useAction((id: string) => post(`/updates/${id}
 export const useCheckUpdates = () => useAction(() => post("/updates/check"), upKeys, "check-updates");
 export const useAutoUpdate = () => useAction(({ id, enabled }: { id: string; enabled: boolean }) => put(`/updates/${id}/auto`, { enabled }), upKeys, "auto-update");
 export const useUnpin = () => useAction((id: string) => post(`/updates/${id}/unpin`), upKeys, "unpin");
+
+export type MemberState = "installed" | "install" | "skip";
+export interface PackInfo {
+  pack: {
+    id: string;
+    name: string;
+    tagline: string;
+    description: string;
+    icon: string;
+    apps: { id: string; role: string; optional: boolean }[];
+    next_steps: string[];
+  };
+  plan: {
+    apps: { id: string; name: string; role: string; optional: boolean; ram_mb: number; state: MemberState }[];
+    models: { name: string; role: string; optional: boolean; size_mb: number; ram_mb: number; state: MemberState }[];
+    needs_ollama: boolean;
+    added: { ram_mb: number; vault_gb: number; needs_vault: boolean };
+    download_mb: number;
+    complete: boolean;
+  };
+  verdict: import("./types").Verdict | null;
+  ollama: { installed: boolean; running: boolean; version: string | null; models: string[] };
+  job: {
+    started: number;
+    finished: number | null;
+    steps: { label: string; state: "pending" | "running" | "done" | "failed"; progress: number | null; error: string | null }[];
+  } | null;
+}
+export const usePacks = () =>
+  useQuery({
+    queryKey: ["packs"],
+    queryFn: () => api<PackInfo[]>("/packs"),
+    refetchInterval: (q) => (q.state.data?.some((p) => p.job && !p.job.finished) ? 1500 : 30_000),
+  });
+export const usePackPlan = (id: string, withIds: string[]) =>
+  useQuery({
+    queryKey: ["packs", id, "plan", withIds],
+    queryFn: () => post<PackInfo>(`/packs/${id}/plan`, { with: withIds }),
+    placeholderData: (prev) => prev,
+  });
+export const useInstallPack = () =>
+  useAction(({ id, with: w, force }: { id: string; with: string[]; force?: boolean }) => post(`/packs/${id}/install`, { with: w, force }), [["packs"], keys.catalog], "install-pack");

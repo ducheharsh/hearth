@@ -1,0 +1,25 @@
+id: filebrowser
+name: File Browser
+description: Browse, upload, share and preview the files on your SSD from any browser.
+category: storage
+website: https://filebrowserquantum.com
+repo: gtsteffaniak/filebrowser
+port: 8090
+upstream: { service: filebrowser, port: 80 }
+resources: { ram_mb: 120, needs_vault: true }
+compose: |
+  services:
+    filebrowser:
+      image: docker.io/gtstef/filebrowser:stable
+      restart: unless-stopped
+      # hearth's login already protects it, so File Browser itself runs without a second login.
+      entrypoint:
+        - sh
+        - -c
+        - >-
+          test -f data/config.yaml ||
+          printf 'server:\n  sources:\n    - path: /srv\n      name: SSD\nauth:\n  methods:\n    noauth: true\n' > data/config.yaml;
+          exec ./filebrowser
+      volumes:
+        - ${APP_DATA}:/home/filebrowser/data
+        - ${VAULT}:/srv

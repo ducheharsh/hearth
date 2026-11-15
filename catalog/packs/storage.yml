@@ -1,0 +1,16 @@
+id: storage
+name: Storage & Sync
+tagline: Your own Dropbox, on your SSD
+description: >-
+  Browse and share files from any browser, keep folders in sync across laptops and
+  phones, and turn paper into searchable PDFs. Everything stays on your SSD and is
+  covered by hearth's backups.
+icon: folder-simple
+apps:
+  - { id: filebrowser, role: "Browse, upload and share files in the browser" }
+  - { id: syncthing, role: "Keep folders in sync across devices" }
+  - { id: paperless-ngx, role: "Scan, OCR and search your paperwork", optional: true }
+  - { id: immich, role: "Photo backup from phones", optional: true }
+next_steps:
+  - Attach a drive as Vault in Storage first.
+  - Install Syncthing on your laptop and share a folder with this Mac.

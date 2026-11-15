@@ -1,0 +1,18 @@
+id: homepage
+name: Homepage
+description: A customizable start page with widgets for your services, bookmarks and weather.
+category: productivity
+website: https://gethomepage.dev
+repo: gethomepage/homepage
+port: 3010
+upstream: { service: homepage, port: 3000 }
+resources: { ram_mb: 170 }
+compose: |
+  services:
+    homepage:
+      image: ghcr.io/gethomepage/homepage:latest
+      restart: unless-stopped
+      environment:
+        HOMEPAGE_ALLOWED_HOSTS: "*"
+      volumes:
+        - ${APP_DATA}:/app/config

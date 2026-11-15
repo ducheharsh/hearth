@@ -12,6 +12,7 @@ import { AppLogo } from "@hearth/ui/components/app-logo";
 import { Card } from "@hearth/ui/components/card";
 import { Pressable } from "@hearth/ui/components/pressable";
 import { Section } from "@hearth/ui/components/section";
+import { Packs } from "../packs/packs";
 import { formatCompact, formatMonth } from "@hearth/ui/format";
 import { springSnappy } from "@hearth/ui/motion";
 import { useCatalog } from "../../api/hooks";
@@ -87,6 +88,8 @@ function Store() {
   return (
     <div className="flex flex-col gap-12">
       {featured.length > 0 ? <Hero apps={featured} /> : null}
+
+      <Packs />
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <Section title={`Top 5 in ${formatMonth(month)}`} description="Most actively developed this month, by commits.">

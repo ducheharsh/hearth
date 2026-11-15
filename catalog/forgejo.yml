@@ -1,0 +1,21 @@
+id: forgejo
+name: Forgejo
+description: Lightweight GitHub-style Git hosting with issues, pull requests and CI.
+category: productivity
+website: https://forgejo.org
+repo: forgejo/forgejo
+port: 3030
+upstream: { service: forgejo, port: 3000 }
+resources: { ram_mb: 250 }
+compose: |
+  services:
+    forgejo:
+      image: codeberg.org/forgejo/forgejo:11
+      restart: unless-stopped
+      environment:
+        USER_UID: "1000"
+        USER_GID: "1000"
+        FORGEJO__server__ROOT_URL: https://${TS_HOST}:3030/
+        FORGEJO__database__DB_TYPE: sqlite3
+      volumes:
+        - ${APP_DATA}:/data

@@ -1,10 +1,11 @@
 //! HTTP API (`/api/*`). The dashboard is served by [`crate::web`] as the fallback.
 
 mod alerts;
-mod apps;
+pub(crate) mod apps;
 mod backups;
 mod containers;
 mod discover;
+mod packs;
 mod search;
 mod settings;
 mod storage;
@@ -38,6 +39,7 @@ pub fn router(state: SharedState) -> Router {
         .merge(terminal::routes())
         .merge(search::routes())
         .merge(updates::routes())
+        .merge(packs::routes())
         .route_layer(middleware::from_fn_with_state(state.clone(), require_auth));
 
     Router::new()

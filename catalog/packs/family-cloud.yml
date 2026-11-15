@@ -1,0 +1,15 @@
+id: family-cloud
+name: Family Cloud
+tagline: Replace Google Photos, Drive and your password manager
+description: >-
+  Automatic phone photo backup, files synced across your devices and a shared password
+  vault. Photos and files live on your SSD.
+icon: users-three
+apps:
+  - { id: immich, role: "Photo and video backup from every phone" }
+  - { id: syncthing, role: "Keep folders in sync across devices" }
+  - { id: vaultwarden, role: "Passwords for the whole family (Bitwarden apps)" }
+  - { id: paperless-ngx, role: "Scan, OCR and search your paperwork", optional: true }
+next_steps:
+  - Install the Immich app on each phone and turn on backup.
+  - Create a family organization in Vaultwarden to share passwords.

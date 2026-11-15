@@ -1,0 +1,23 @@
+id: navidrome
+name: Navidrome
+description: Your own Spotify for the music on your Media drive. Works with Subsonic apps.
+category: media
+website: https://www.navidrome.org
+repo: navidrome/navidrome
+port: 4533
+upstream: { service: navidrome, port: 4533 }
+resources: { ram_mb: 100 }
+auth:
+  # Subsonic clients authenticate with Navidrome's own accounts.
+  exempt_paths: ["/rest/*"]
+compose: |
+  services:
+    navidrome:
+      image: docker.io/deluan/navidrome:latest
+      restart: unless-stopped
+      environment:
+        TZ: ${TZ}
+        ND_SCANSCHEDULE: 1h
+      volumes:
+        - ${APP_DATA}:/data
+        - ${MEDIA}/music:/music:ro
