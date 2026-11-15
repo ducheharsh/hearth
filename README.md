@@ -33,12 +33,12 @@
 <h2 id="demo" align="center">See it in a minute</h2>
 
 <p align="center">
-  <a href="https://github.com/ducheharsh/hearth/blob/main/docs/assets/demo/hearth-demo.mp4">
+  <a href="https://pub-01fa71d11e67434eaa8edfc4d6858f60.r2.dev/hearth-demo.mp4">
     <img alt="Watch the 1-minute hearth demo" src="docs/assets/demo/poster.jpg" width="900">
   </a>
   <br>
   <sub>Your server's address, the App Store and Packs, ⌘K search, and users with signed-in devices.
-  <a href="docs/assets/demo/hearth-demo.mp4">Download the MP4</a> (8 MB).</sub>
+  <a href="https://pub-01fa71d11e67434eaa8edfc4d6858f60.r2.dev/hearth-demo.mp4">Watch in your browser</a> · <a href="docs/assets/demo/hearth-demo.mp4">download the MP4</a> (8 MB).</sub>
 </p>
 
 ## Why hearth
