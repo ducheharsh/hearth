@@ -46,6 +46,10 @@ pub struct Route {
     /// Override the Host header sent upstream (e.g. Syncthing wants `localhost`).
     #[serde(default)]
     pub host_header: Option<String>,
+    /// Who may open it after signing in: `None` = every login; `Some(list)` = only these
+    /// usernames. Admins always may. See [`apply_access`].
+    #[serde(default)]
+    pub allow: Option<Vec<String>>,
 }
 
 impl Route {
@@ -61,6 +65,7 @@ impl Route {
             subdomain: app.id.clone(),
             public: false,
             host_header: None,
+            allow: None,
         }
     }
 }
@@ -79,6 +84,7 @@ pub fn builtin_routes() -> Vec<Route> {
             subdomain: AUTH_SUBDOMAIN.into(),
             public: true,
             host_header: None,
+            allow: None,
         },
         Route {
             id: "hearth".into(),
@@ -90,6 +96,7 @@ pub fn builtin_routes() -> Vec<Route> {
             subdomain: HEARTH_SUBDOMAIN.into(),
             public: false,
             host_header: None,
+            allow: None,
         },
     ]
 }
@@ -151,15 +158,37 @@ fn site_body(out: &mut String, r: &Route, login: &str, app: &str) {
     if !r.protect {
         let _ = writeln!(out, "\timport {app}");
     } else if r.exempt_paths.is_empty() {
-        let _ = writeln!(out, "\timport {login}\n\timport {app}");
+        let _ = writeln!(out, "\timport {login}{}\n\timport {app}", guard(r, "\t"));
     } else {
         let _ = writeln!(
             out,
             "\t@public path {paths}\n\thandle @public {{\n\t\timport {app}\n\t}}\n\
-             \thandle {{\n\t\timport {login}\n\t\timport {app}\n\t}}",
-            paths = r.exempt_paths.join(" ")
+             \thandle {{\n\t\timport {login}{guard}\n\t\timport {app}\n\t}}",
+            paths = r.exempt_paths.join(" "),
+            guard = guard(r, "\t\t")
         );
     }
+}
+
+/// Per-app access, after sign-in: Authelia sets `Remote-User` / `Remote-Groups` (overwriting
+/// anything the client sent), and Caddy refuses anyone who isn't listed or an admin.
+fn guard(r: &Route, indent: &str) -> String {
+    let Some(allow) = &r.allow else {
+        return String::new();
+    };
+    let users = if allow.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "\n{indent}\tnot header_regexp Remote-User ^({})$",
+            allow.join("|")
+        )
+    };
+    format!(
+        "\n{indent}@denied {{{users}\n{indent}\tnot header_regexp Remote-Groups (^|,)\\s*admins\\s*(,|$)\n{indent}}}\n\
+         {indent}respond @denied \"You don't have access to {name}. Ask an admin of this hearth.\" 403",
+        name = r.name.replace('"', "")
+    )
 }
 
 /// Render the full Caddyfile. `domain` adds host-routed sites for public routes.
@@ -467,6 +496,53 @@ pub struct User {
     /// An authenticator app has been enrolled and verified.
     #[serde(default)]
     pub totp: bool,
+    /// Logins from before roles existed were the owner: they default to admin.
+    #[serde(default)]
+    pub role: Role,
+    /// Can't sign in; everything else is kept.
+    #[serde(default)]
+    pub disabled: bool,
+    /// Members only: `None` = every app, `Some(ids)` = just these. Admins see everything.
+    #[serde(default)]
+    pub apps: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Role {
+    /// Everything, including the hearth dashboard.
+    #[default]
+    Admin,
+    /// Apps only (all, or the ones they're given).
+    Member,
+}
+
+impl User {
+    #[must_use]
+    pub fn is_admin(&self) -> bool {
+        self.role == Role::Admin
+    }
+}
+
+/// Fill in `Route::allow` from the users: the hearth dashboard is admins-only; an app is
+/// restricted only when some enabled member isn't given it.
+pub fn apply_access(routes: &mut [Route], users: &[User]) {
+    let members: Vec<&User> = users
+        .iter()
+        .filter(|u| !u.disabled && !u.is_admin())
+        .collect();
+    for r in routes.iter_mut().filter(|r| r.protect) {
+        if r.id == "hearth" {
+            r.allow = Some(Vec::new());
+            continue;
+        }
+        let allowed: Vec<String> = members
+            .iter()
+            .filter(|u| u.apps.as_ref().is_none_or(|a| a.contains(&r.id)))
+            .map(|u| u.username.clone())
+            .collect();
+        r.allow = (allowed.len() < members.len()).then_some(allowed);
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -512,6 +588,9 @@ pub fn new_user(
         email: email.to_owned(),
         password_hash: hash_password(password, salt)?,
         totp: false,
+        role: Role::Member,
+        disabled: false,
+        apps: None,
     })
 }
 
@@ -539,11 +618,17 @@ pub fn render_users(users: &[User]) -> String {
     for u in users {
         let _ = write!(
             out,
-            "  {}:\n    displayname: {}\n    email: {}\n    password: {}\n    groups: [admins]\n",
+            "  {}:\n    displayname: {}\n    email: {}\n    password: {}\n    groups: [{}]\n    disabled: {}\n",
             u.username,
             yaml_str(&u.display_name),
             yaml_str(&u.email),
-            yaml_str(&u.password_hash)
+            yaml_str(&u.password_hash),
+            if u.is_admin() {
+                "admins, users"
+            } else {
+                "users"
+            },
+            u.disabled
         );
     }
     out
@@ -588,6 +673,68 @@ mod tests {
             site.find("handle @public").expect("public")
                 < site.find("import login 8081").expect("login")
         );
+    }
+
+    fn user(name: &str, role: Role, apps: Option<&[&str]>) -> User {
+        User {
+            username: name.into(),
+            display_name: name.into(),
+            email: format!("{name}@x.io"),
+            password_hash: "$argon2id$v=19$x".into(),
+            totp: false,
+            role,
+            disabled: false,
+            apps: apps.map(|a| a.iter().map(|s| (*s).to_owned()).collect()),
+        }
+    }
+
+    #[test]
+    fn access_rules_follow_roles_and_app_lists() {
+        let mut r = routes([Route::for_app(&app("")), {
+            let mut j = Route::for_app(&app(""));
+            j.id = "jellyfin".into();
+            j
+        }]);
+        let users = [
+            user("dad", Role::Admin, None),
+            user("mom", Role::Member, None),
+            user("kid", Role::Member, Some(&["jellyfin"])),
+        ];
+        apply_access(&mut r, &users);
+        let allow = |id: &str| r.iter().find(|x| x.id == id).and_then(|x| x.allow.clone());
+        assert_eq!(allow("hearth"), Some(vec![]), "dashboard is admins-only");
+        assert_eq!(
+            allow("vaultwarden"),
+            Some(vec!["mom".to_owned()]),
+            "kid isn't given it"
+        );
+        assert_eq!(
+            allow("jellyfin"),
+            None,
+            "every member has it: no extra rule"
+        );
+        assert_eq!(allow("authelia"), None, "login portal is never gated");
+        let caddy = render_caddyfile(&r, None);
+        assert!(caddy.contains("not header_regexp Remote-User ^(mom)$"));
+        assert!(caddy.contains("respond @denied \"You don't have access to Vaultwarden."));
+    }
+
+    #[test]
+    fn users_file_carries_groups_and_disabled() {
+        let mut kid = user("kid", Role::Member, None);
+        kid.disabled = true;
+        let y = render_users(&[user("dad", Role::Admin, None), kid]);
+        assert!(y.contains("  dad:\n") && y.contains("groups: [admins, users]"));
+        assert!(y.contains("groups: [users]\n    disabled: true"));
+    }
+
+    #[test]
+    fn old_users_default_to_admin() {
+        let u: User = serde_json::from_str(
+            r#"{"username":"a","display_name":"A","email":"a@x.io","password_hash":"h"}"#,
+        )
+        .expect("parse");
+        assert!(u.is_admin() && !u.disabled && u.apps.is_none());
     }
 
     #[test]

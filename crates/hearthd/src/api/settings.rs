@@ -29,7 +29,7 @@ pub fn routes() -> Router<SharedState> {
         .route("/gateway/disable", post(gw_disable))
         .route("/gateway/apply", post(gw_apply))
         .route("/gateway/users", get(users).post(add_user))
-        .route("/gateway/users/{name}", delete(delete_user))
+        .route("/gateway/users/{name}", delete(delete_user).put(edit_user))
         .route(
             "/gateway/users/{name}/totp",
             post(totp_start).delete(totp_remove),
@@ -265,9 +265,7 @@ async fn users(State(st): State<SharedState>) -> Result<Json<serde_json::Value>,
     let list: Vec<_> = gateway::load_users(&st)
         .map_err(internal)?
         .into_iter()
-        .map(
-            |u| json!({ "username": u.username, "display_name": u.display_name, "email": u.email, "totp": u.totp }),
-        )
+        .map(|u| user_json(&u))
         .collect();
     Ok(Json(json!(list)))
 }
@@ -279,6 +277,43 @@ struct NewUser {
     display_name: String,
     email: String,
     password: String,
+    /// New logins: defaults to admin for the very first one, member after that.
+    #[serde(default)]
+    role: Option<hearth_gateway::Role>,
+    /// Members: `None` = every app.
+    #[serde(default)]
+    apps: Option<Vec<String>>,
+}
+
+/// Full edit of a login (the dialog sends the whole form).
+#[derive(Deserialize)]
+struct EditUser {
+    display_name: String,
+    email: String,
+    role: hearth_gateway::Role,
+    disabled: bool,
+    /// `None` = every app.
+    apps: Option<Vec<String>>,
+    /// Set only to reset the password.
+    #[serde(default)]
+    password: Option<String>,
+}
+
+/// Someone must always be able to reach the dashboard.
+fn check_admins(list: &[hearth_gateway::User]) -> Result<(), ApiError> {
+    if !list.is_empty() && !list.iter().any(|u| u.is_admin() && !u.disabled) {
+        return Err(bad(
+            "Keep at least one active admin: they're the only ones who can open this dashboard.",
+        ));
+    }
+    Ok(())
+}
+
+fn user_json(u: &hearth_gateway::User) -> serde_json::Value {
+    json!({
+        "username": u.username, "display_name": u.display_name, "email": u.email, "totp": u.totp,
+        "role": u.role, "disabled": u.disabled, "apps": u.apps,
+    })
 }
 
 async fn add_user(
@@ -287,30 +322,43 @@ async fn add_user(
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let salt: [u8; 16] = hearth_host::random_bytes().map_err(internal)?;
     let username = u.username.trim().to_lowercase();
+    let (display, email, password) = (
+        u.display_name.clone(),
+        u.email.trim().to_owned(),
+        u.password.clone(),
+    );
     // argon2 at 64 MiB takes ~100 ms: keep it off the async workers.
     let user = tokio::task::spawn_blocking(move || {
-        hearth_gateway::new_user(
-            &username,
-            &u.display_name,
-            u.email.trim(),
-            &u.password,
-            &salt,
-        )
+        hearth_gateway::new_user(&username, &display, &email, &password, &salt)
     })
     .await
     .map_err(internal)?
     .map_err(bad)?;
     let path = st.config.gateway_dir().join("users.json");
     let mut list = gateway::load_users(&st).map_err(internal)?;
-    let replaced = list.iter().any(|x| x.username == user.username);
-    // Changing a password keeps an existing authenticator enrollment.
+    let existing = list.iter().find(|x| x.username == user.username).cloned();
+    let replaced = existing.is_some();
     let mut user = user;
-    user.totp = list.iter().any(|x| x.username == user.username && x.totp);
+    if let Some(old) = existing {
+        // Changing a password keeps everything else about the login.
+        user.totp = old.totp;
+        user.role = old.role;
+        user.disabled = old.disabled;
+        user.apps = old.apps;
+    } else {
+        user.role = u.role.unwrap_or(if list.is_empty() {
+            hearth_gateway::Role::Admin
+        } else {
+            hearth_gateway::Role::Member
+        });
+        user.apps = u.apps;
+    }
     list.retain(|x| x.username != user.username);
     let name = user.username.clone();
     list.push(user);
+    check_admins(&list)?;
     store::save(&path, &list).map_err(internal)?;
-    gateway::write(&st).await.map_err(err)?;
+    gateway::refresh(&st).await.map_err(err)?;
     st.event(
         Level::Success,
         "gateway",
@@ -336,9 +384,59 @@ async fn delete_user(
         ));
     }
     list.retain(|x| x.username != name);
+    check_admins(&list)?;
     store::save(&st.config.gateway_dir().join("users.json"), &list).map_err(internal)?;
-    gateway::write(&st).await.map_err(err)?;
+    gateway::refresh(&st).await.map_err(err)?;
+    st.event(Level::Info, "gateway", "Login removed", name)
+        .await;
     Ok(Json(json!({ "ok": true })))
+}
+
+async fn edit_user(
+    State(st): State<SharedState>,
+    Path(name): Path<String>,
+    Json(e): Json<EditUser>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let mut list = gateway::load_users(&st).map_err(internal)?;
+    let Some(i) = list.iter().position(|x| x.username == name) else {
+        return Err(ApiError::NotFound(format!("login `{name}`")));
+    };
+    let email = e.email.trim();
+    if !email.contains('@') || email.contains(char::is_whitespace) {
+        return Err(bad("Enter a valid email address."));
+    }
+    if let Some(p) = e.password.filter(|p| !p.is_empty()) {
+        if p.chars().count() < 12 {
+            return Err(bad("Passwords need at least 12 characters."));
+        }
+        let salt: [u8; 16] = hearth_host::random_bytes().map_err(internal)?;
+        let hash = tokio::task::spawn_blocking(move || hearth_gateway::hash_password(&p, &salt))
+            .await
+            .map_err(internal)?
+            .map_err(bad)?;
+        list[i].password_hash = hash;
+    }
+    let u = &mut list[i];
+    u.display_name = if e.display_name.trim().is_empty() {
+        u.username.clone()
+    } else {
+        e.display_name.trim().to_owned()
+    };
+    u.email = email.to_owned();
+    u.role = e.role;
+    u.disabled = e.disabled;
+    u.apps = if e.role == hearth_gateway::Role::Admin {
+        None
+    } else {
+        e.apps
+    };
+    let updated = user_json(u);
+    check_admins(&list)?;
+    store::save(&st.config.gateway_dir().join("users.json"), &list).map_err(internal)?;
+    gateway::refresh(&st).await.map_err(err)?;
+    st.event(Level::Info, "gateway", "Login updated", name)
+        .await;
+    Ok(Json(updated))
 }
 
 async fn cf_status(State(st): State<SharedState>) -> Json<serde_json::Value> {

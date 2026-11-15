@@ -125,8 +125,9 @@ Conventions:
 | GET | `/gateway` | Rendered Caddyfile / compose / Authelia config |
 | POST | `/gateway/enable`, `/gateway/disable`, `/gateway/apply` | Gateway lifecycle |
 | GET | `/gateway/ca.crt` | hearth's internal CA (NetBird HTTPS) |
-| GET, POST | `/gateway/users` | Logins (`totp` flag per user) |
-| DELETE | `/gateway/users/{name}` | Remove a login |
+| GET, POST | `/gateway/users` | Logins (`role`, `apps`, `disabled`, `totp`); POST creates (or changes a password) |
+| PUT | `/gateway/users/{name}` | Edit `{display_name, email, role, disabled, apps, password?}`; `apps: null` = every app |
+| DELETE | `/gateway/users/{name}` | Remove a login (refused if it would leave no active admin) |
 | POST | `/gateway/users/{name}/totp` | Start 2FA enrollment → `{uri, secret, qr_svg}` |
 | POST | `/gateway/users/{name}/totp/verify` | `{secret, code}`; turns 2FA on if the code is valid |
 | DELETE | `/gateway/users/{name}/totp` | Turn 2FA off |

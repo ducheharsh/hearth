@@ -124,7 +124,8 @@ The left tree jumps to any group; the group in view is highlighted.
 - **Network**: Tailscale (connect, rename, HTTPS, published ports, custom control server),
   NetBird (connect, serve apps with hearth's certificate authority), Headscale (install wizard, users,
   keys, join this Mac).
-- **Logins & Gateway**: turn the gateway on, add logins, **two-factor** per login, see what's published.
+- **Users**: people, roles and per-app access (below).
+- **Gateway**: turn the gateway on and see what's published.
   Turning the gateway on shows each step live (check tailnet → write config → download Caddy and
   Authelia → start → publish on Tailscale) and explains any failure with **Try Again**. The toggle stays
   off, with the reason, until Tailscale, HTTPS certificates and a login are in place.
@@ -133,9 +134,24 @@ The left tree jumps to any group; the group in view is highlighted.
 - **Capacity**: memory reserve and disk reserve used by install checks.
 - **Advanced**: require the gateway login for the dashboard itself.
 
+### Users, roles and app access
+
+Settings → **Users** lists everyone who can sign in. **Add User** or **Edit** opens one dialog for name,
+email, password reset, role, app access, two-factor, disabling and deleting.
+
+- **Admin**: every app, plus the hearth dashboard (settings, users, installs). The first user is an
+  admin, and hearth always keeps at least one active admin.
+- **Member**: only apps. Either **All apps** (including ones installed later) or a chosen list. Members
+  can't open the dashboard.
+- **Disable sign-in** blocks a login without deleting it.
+
+**App access** shows, per installed app, who can open it. Access is enforced by the gateway: Authelia
+tells Caddy who signed in and their groups, and Caddy shows "You don't have access" to anyone not
+allowed. Apps that are public (no sign-in) can't be limited. Changes apply immediately.
+
 ### Two-factor
 
-Logins & Gateway → **Set Up 2FA** on a login. Scan the QR code with any authenticator app
+Settings → Users → **Edit** → **Set Up 2FA**. Scan the QR code with any authenticator app
 (1Password, Google/Microsoft Authenticator, Authy, Bitwarden), or type the key, then enter the 6-digit
 code. 2FA is only switched on once a code verifies. **Reset** issues a new secret; **Remove** turns it
 off. Passkeys can also be registered from Authelia's sign-in page.

@@ -213,6 +213,7 @@ impl AppState {
                 subdomain: e.id.clone(),
                 public: e.public,
                 host_header: None,
+                allow: None,
             });
         }
         routes

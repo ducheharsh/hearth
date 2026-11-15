@@ -54,8 +54,8 @@ pub fn router(state: SharedState) -> Router {
         .with_state(state)
 }
 
-/// With `require_remote_user`, only requests that passed Authelia are served
-/// (Caddy copies `Remote-User` from the auth response).
+/// With `require_remote_user`, only admins who passed Authelia are served (Caddy copies
+/// `Remote-User`/`Remote-Groups` from the auth response, overwriting client values).
 async fn require_auth(
     State(st): State<SharedState>,
     req: Request,
@@ -64,7 +64,12 @@ async fn require_auth(
     let open = req.uri().path() == "/health";
     if st.settings.read().await.require_remote_user
         && !open
-        && !req.headers().contains_key("remote-user")
+        && !(req.headers().contains_key("remote-user")
+            && req
+                .headers()
+                .get("remote-groups")
+                .and_then(|g| g.to_str().ok())
+                .is_some_and(|g| g.split(',').any(|x| x.trim() == "admins")))
     {
         return Err(ApiError::Unauthorized);
     }

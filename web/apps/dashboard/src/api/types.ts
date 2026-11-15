@@ -293,11 +293,16 @@ export interface GatewayResponse {
   job: GatewayJob | null;
 }
 
+export type UserRole = "admin" | "member";
 export interface GatewayUser {
   username: string;
   display_name: string;
   email: string;
   totp: boolean;
+  role: UserRole;
+  disabled: boolean;
+  /** Members: null = every app. */
+  apps: string[] | null;
 }
 
 export interface CloudflareStatus {

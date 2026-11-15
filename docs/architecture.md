@@ -95,6 +95,11 @@ alert dispatcher, which filters by level and de-duplicates.
 - hearthd binds **loopback only**. Remote access always goes through the gateway.
 - Every published route passes Authelia unless the manifest sets `auth.protect: false` or lists
   `exempt_paths` (e.g. mobile APIs that have their own auth).
+- **Roles and per-app access** (`hearth_gateway::apply_access`): users are `admin` or `member`, and
+  members have an app list or "all". Authelia puts admins in the `admins` group; after sign-in Caddy
+  checks `Remote-User`/`Remote-Groups` (set by Authelia, overwriting client values) and returns 403 to
+  anyone not allowed. The hearth dashboard is admins-only, and with *Lock down the dashboard* hearthd
+  itself also requires the `admins` group.
 - Secrets (`<state>/secrets/`, `gateway/authelia.env`) are written `0600`. Tokens and passwords are
   write-only through the API, with two deliberate exceptions: the 2FA secret during enrollment, and
   the backup recovery password (`GET /api/backups/password`, so it can be shown again). Turn on

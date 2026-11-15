@@ -112,6 +112,11 @@ Backups → the app → **Restore** → pick a snapshot. The app is stopped, res
 The app keeps running the previous images (`apps/<id>/hearth.pin.yml`). Check its logs in Containers,
 then **Release Hold** when a fixed version is out.
 
+### Locked out as a member, or no admin left
+hearth refuses changes that would leave no active admin. If `users.json` was edited by hand, set
+`"role": "admin"` (and `"disabled": false`) for your login in `~/.hearth/gateway/users.json`, then
+restart hearth.
+
 ### Locked out of 2FA
 On the Mac: Settings → Logins → **Remove** 2FA for that login, or from a shell:
 `docker compose -p hearth-gateway exec authelia authelia storage user totp delete <user> --config /config/configuration.yml`

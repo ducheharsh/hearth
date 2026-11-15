@@ -97,7 +97,11 @@ pub async fn preview(st: &SharedState) -> Preview {
             publish: false,
         });
     }
-    let r = routes(app_routes.clone());
+    let mut r = routes(app_routes.clone());
+    // Roles and per-app access become Caddy rules on each route.
+    if let Ok(users) = load_users(st) {
+        hearth_gateway::apply_access(&mut r, &users);
+    }
     let ts = st.ts_host().await;
     Preview {
         caddyfile: render_caddyfile(&r, domain.as_deref())
@@ -148,6 +152,24 @@ pub async fn write(st: &SharedState) -> anyhow::Result<Preview> {
     .await?;
     ensure_authelia_env(st).await?;
     Ok(p)
+}
+
+/// After logins or access change: rewrite the files (Authelia watches its users file) and,
+/// if the gateway runs, reload Caddy so access rules apply immediately.
+pub async fn refresh(st: &SharedState) -> anyhow::Result<()> {
+    write(st).await?;
+    if st.settings.read().await.gateway_enabled {
+        let env = ComposeEnv::default().with("TS_HOST", st.ts_host().await);
+        project(st)
+            .exec(
+                &env,
+                "caddy",
+                &["caddy", "reload", "--config", "/etc/caddy/Caddyfile"],
+            )
+            .await
+            .context("reloading Caddy with the new access rules")?;
+    }
+    Ok(())
 }
 
 /// Progress of turning the gateway on, shown step by step in Settings.
@@ -221,7 +243,7 @@ async fn job_active(st: &SharedState) -> bool {
 /// Before turning the gateway on: a login exists and the tailnet can issue HTTPS certificates.
 async fn precheck(st: &SharedState) -> anyhow::Result<()> {
     if load_users(st)?.is_empty() {
-        bail!("Create a login in Settings → Logins & Gateway before turning the gateway on.");
+        bail!("Add a user in Settings → Users before turning the gateway on.");
     }
     mark(st, STEP_CHECK, "running", None).await;
     // Without tailnet HTTPS certificates `tailscale serve` can't publish anything (and

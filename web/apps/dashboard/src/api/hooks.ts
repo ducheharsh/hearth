@@ -175,8 +175,19 @@ export const useTailscaleAction = () =>
   useAction(({ path, body }: { path: string; body?: unknown }) => (body ? put(`/tailscale/${path}`, body) : post(`/tailscale/${path}`)), settingsKeys, "tailscale");
 export const useGatewayAction = () => useAction((path: "enable" | "disable" | "apply") => post(`/gateway/${path}`), settingsKeys, "gateway");
 export const useAddUser = () =>
-  useAction((u: { username: string; display_name: string; email: string; password: string }) => post("/gateway/users", u), [keys.users, keys.setup, keys.gateway], "add-user");
-export const useDeleteUser = () => useAction((name: string) => del(`/gateway/users/${name}`), [keys.users, keys.setup], "delete-user");
+  useAction(
+    (u: { username: string; display_name: string; email: string; password: string; role?: "admin" | "member"; apps?: string[] | null }) => post("/gateway/users", u),
+    [keys.users, keys.setup, keys.gateway],
+    "add-user",
+  );
+export const useEditUser = () =>
+  useAction(
+    ({ username, ...body }: { username: string; display_name: string; email: string; role: "admin" | "member"; disabled: boolean; apps: string[] | null; password?: string }) =>
+      put(`/gateway/users/${username}`, body),
+    [keys.users, keys.gateway],
+    "edit-user",
+  );
+export const useDeleteUser = () => useAction((name: string) => del(`/gateway/users/${name}`), [keys.users, keys.setup, keys.gateway], "delete-user");
 export const useCloudflareConnect = () =>
   useAction((b: { api_token: string; domain: string }) => post("/cloudflare/connect", b), settingsKeys, "cloudflare");
 export const useCloudflareDisconnect = () => useAction((b: { delete: boolean }) => post("/cloudflare/disconnect", b), settingsKeys, "cloudflare-off");

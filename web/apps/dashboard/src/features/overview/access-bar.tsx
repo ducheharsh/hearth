@@ -27,16 +27,37 @@ const bare = (url: string) => url.replace(/^https?:\/\//, "");
 
 /** "Where is my server?": the address to open hearth from your other devices, with copy, open and QR. */
 /** What remote access needs, in order, and where to fix each part. */
-const NEEDED: { id: string; title: string; why: string; go?: Record<string, string>; href?: string }[] = [
-  { id: "tailscale", title: "Connect Tailscale", why: "Your private network between this Mac and your devices.", go: { tab: "settings", section: "network" } },
+const NEEDED: {
+  id: string;
+  title: string;
+  why: string;
+  go?: Record<string, string>;
+  href?: string;
+}[] = [
+  {
+    id: "tailscale",
+    title: "Connect Tailscale",
+    why: "Your private network between this Mac and your devices.",
+    go: { tab: "settings", section: "network" },
+  },
   {
     id: "https",
     title: "Turn on Tailscale HTTPS certificates",
     why: "In the Tailscale admin console, enable MagicDNS and HTTPS Certificates.",
     href: "https://login.tailscale.com/admin/dns",
   },
-  { id: "login", title: "Create a login", why: "What you sign in with from your phone.", go: { tab: "settings", section: "access" } },
-  { id: "gateway", title: "Turn on the gateway", why: "Publishes hearth and your apps behind that login.", go: { tab: "settings", section: "access" } },
+  {
+    id: "login",
+    title: "Add a user",
+    why: "What you sign in with from your phone.",
+    go: { tab: "settings", section: "users" },
+  },
+  {
+    id: "gateway",
+    title: "Turn on the gateway",
+    why: "Publishes hearth and your apps behind that login.",
+    go: { tab: "settings", section: "access" },
+  },
 ];
 
 function RemoteChecklist() {
@@ -45,8 +66,13 @@ function RemoteChecklist() {
   const done = (id: string) => data.find((c) => c.id === id)?.state === "done";
   const next = NEEDED.find((n) => !done(n.id))?.id;
   return (
-    <div className="flex flex-col gap-2 border-t border-kumo-hairline pt-3" data-tour="remote-access">
-      <p className="text-xs font-medium">To open hearth from your phone or laptop:</p>
+    <div
+      className="flex flex-col gap-2 border-t border-kumo-hairline pt-3"
+      data-tour="remote-access"
+    >
+      <p className="text-xs font-medium">
+        To open hearth from your phone or laptop:
+      </p>
       <ol className="flex flex-col gap-2">
         {NEEDED.map((n, i) => {
           const ok = done(n.id);
@@ -54,22 +80,47 @@ function RemoteChecklist() {
           return (
             <li key={n.id} className="flex items-center gap-3">
               {ok ? (
-                <CheckCircleIcon size={18} weight="fill" className="shrink-0 text-kumo-success" aria-hidden="true" />
+                <CheckCircleIcon
+                  size={18}
+                  weight="fill"
+                  className="shrink-0 text-kumo-success"
+                  aria-hidden="true"
+                />
               ) : (
-                <CircleIcon size={18} className="shrink-0 text-kumo-subtle" aria-hidden="true" />
+                <CircleIcon
+                  size={18}
+                  className="shrink-0 text-kumo-subtle"
+                  aria-hidden="true"
+                />
               )}
               <span className="min-w-0 flex-1">
-                <span className={`block text-sm ${ok ? "text-kumo-subtle" : ""}`}>
+                <span
+                  className={`block text-sm ${ok ? "text-kumo-subtle" : ""}`}
+                >
                   {i + 1}. {n.title}
                 </span>
-                {!ok ? <span className="block text-xs text-kumo-subtle text-pretty">{n.why}</span> : null}
+                {!ok ? (
+                  <span className="block text-xs text-kumo-subtle text-pretty">
+                    {n.why}
+                  </span>
+                ) : null}
               </span>
               {ok ? null : n.href ? (
-                <LinkButton href={n.href} external size="xs" variant={variant} icon={<ArrowSquareOutIcon />}>
+                <LinkButton
+                  href={n.href}
+                  external
+                  size="xs"
+                  variant={variant}
+                  icon={<ArrowSquareOutIcon />}
+                >
                   Open
                 </LinkButton>
               ) : (
-                <Button size="xs" variant={variant} onClick={() => n.go && navigate(n.go)}>
+                <Button
+                  size="xs"
+                  variant={variant}
+                  onClick={() => n.go && navigate(n.go)}
+                >
                   Fix
                 </Button>
               )}
