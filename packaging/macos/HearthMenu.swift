@@ -80,6 +80,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let here = Bundle.main.bundleURL
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         if here.path.hasPrefix("/Applications/") || here.path.hasPrefix(home + "/Applications/") { return false }
+        let installed = URL(fileURLWithPath: "/Applications/Hearth.app")
+        if here.path.contains("/AppTranslocation/") && FileManager.default.fileExists(atPath: installed.path) {
+            NSWorkspace.shared.openApplication(at: installed, configuration: NSWorkspace.OpenConfiguration()) { _, _ in
+                DispatchQueue.main.async { NSApp.terminate(nil) }
+            }
+            return true
+        }
         let alert = NSAlert()
         alert.messageText = "Install Hearth in Applications"
         alert.informativeText = "Hearth isn't running yet. To keep your server running in the background it needs to live in your Applications folder."
@@ -88,11 +95,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
         guard alert.runModal() == .alertFirstButtonReturn else { NSApp.terminate(nil); return true }
         let dest = URL(fileURLWithPath: "/Applications/Hearth.app")
+        let staging = URL(fileURLWithPath: "/Applications/.Hearth-installing.app")
         do {
-            if FileManager.default.fileExists(atPath: dest.path) { try FileManager.default.removeItem(at: dest) }
-            try FileManager.default.copyItem(at: here, to: dest)
+            // Copy first, then swap in atomically: a failed copy never removes a working install.
+            try? FileManager.default.removeItem(at: staging)
+            try FileManager.default.copyItem(at: here, to: staging)
+            if FileManager.default.fileExists(atPath: dest.path) {
+                _ = try FileManager.default.replaceItemAt(dest, withItemAt: staging)
+            } else {
+                try FileManager.default.moveItem(at: staging, to: dest)
+            }
         } catch {
-            let e = NSAlert(error: error)
+            try? FileManager.default.removeItem(at: staging)
+            let e = NSAlert()
+            e.messageText = "Couldn’t move Hearth to Applications"
+            e.informativeText = "Drag Hearth into your Applications folder in Finder, then open it from there.\n\n\(error.localizedDescription)"
             e.runModal()
             NSApp.terminate(nil)
             return true
