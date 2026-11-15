@@ -12,6 +12,7 @@ mod error;
 mod events;
 mod gateway;
 mod headscale;
+mod history;
 mod search;
 mod settings;
 mod state;
@@ -82,6 +83,7 @@ async fn main() -> anyhow::Result<()> {
     let ts = hearth_host::tailscale::status().await.unwrap_or_default();
 
     let listen = config.listen;
+    let state_dir_for_history = config.state_dir.clone();
     let state = Arc::new(AppState {
         compose: ComposeRunner::new(config.apps_dir()),
         config,
@@ -99,6 +101,7 @@ async fn main() -> anyhow::Result<()> {
         persisted: RwLock::new(persisted),
         events: Mutex::new(events::EventLog::default()),
         search: RwLock::new(None),
+        history: RwLock::new(history::load(&state_dir_for_history)),
         ops: Mutex::new(()),
     });
 
@@ -107,6 +110,7 @@ async fn main() -> anyhow::Result<()> {
     tokio::spawn(storage::run_watcher(state.clone()));
     tokio::spawn(discover::run_syncer(state.clone()));
     tokio::spawn(search::run_indexer(state.clone()));
+    tokio::spawn(history::run_recorder(state.clone()));
 
     let listener = tokio::net::TcpListener::bind(listen)
         .await

@@ -68,6 +68,7 @@ pub struct AppState {
     pub persisted: RwLock<Persisted>,
     pub events: Mutex<EventLog>,
     pub search: RwLock<Option<hearth_search::SearchIndex>>,
+    pub history: RwLock<crate::history::History>,
     /// Serialises installs, gateway applies and other mutations.
     pub ops: Mutex<()>,
 }

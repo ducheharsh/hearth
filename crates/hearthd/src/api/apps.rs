@@ -34,6 +34,7 @@ pub fn routes() -> Router<SharedState> {
         .route("/custom-apps/{id}", axum::routing::delete(delete_custom))
         .route("/ratings/{key}", put(put_rating))
         .route("/icons/{file}", get(icon))
+        .route("/apps/{id}/history", get(history))
 }
 
 #[derive(Serialize)]
@@ -553,6 +554,19 @@ async fn icon(
         HeaderValue::from_static("nosniff"),
     );
     Ok(res)
+}
+
+async fn history(
+    State(st): State<SharedState>,
+    Path(id): Path<String>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let app = manifest(&st, &id).await?;
+    let h = st.history.read().await;
+    Ok(Json(json!({
+        "summary": h.summary(&app.project_name()),
+        "estimate_mb": app.resources.ram_mb,
+        "measured_mb": h.measured_ram_mb(&app.project_name()),
+    })))
 }
 
 #[cfg(test)]

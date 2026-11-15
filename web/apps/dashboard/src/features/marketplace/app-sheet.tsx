@@ -19,7 +19,9 @@ import { Field, TextInput } from "@hearth/ui/components/form";
 import { Stars } from "@hearth/ui/components/stars";
 import { StatusDot } from "@hearth/ui/components/status-dot";
 import { formatCompact, formatRelative } from "@hearth/ui/format";
-import { useAppAction, useOverride, useRate, useSettings } from "../../api/hooks";
+import { useAppAction, useAppHistory, useOverride, useRate, useSettings } from "../../api/hooks";
+import { Sparkline } from "@hearth/ui/components/sparkline";
+import { formatBytes } from "@hearth/ui/format";
 import type { CatalogApp } from "../../api/types";
 import { FitBadge } from "./fit-badge";
 
@@ -127,6 +129,7 @@ export function AppSheet({ app, open, onOpenChange, onInstall, onRemove }: AppSh
           <Stars value={app.rating} onChange={(stars) => rate.mutate({ key: app.id, stars })} size={22} label={`Rate ${app.name}`} />
         </section>
 
+        {app.installed ? <Usage id={app.id} /> : null}
         {app.installed ? <AddressSettings key={app.port} app={app} domain={domain} /> : null}
         </div>
         </DialogFrame>
@@ -188,6 +191,45 @@ function AddressSettings({ app, domain }: { app: CatalogApp; domain: string | nu
           Save Address
         </Button>
       </div>
+    </section>
+  );
+}
+
+/** Memory/CPU over the last 7 days (5-minute buckets) and what the capacity check uses. */
+function Usage({ id }: { id: string }) {
+  const { data } = useAppHistory(id, true);
+  const s = data?.summary;
+  return (
+    <section className="flex flex-col gap-3 rounded-xl p-4 ring-1 ring-kumo-hairline" aria-label="Resource usage">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-sm font-medium">Resource Usage</h3>
+        <span className="text-xs text-kumo-subtle">{s ? `last ${s.hours >= 24 ? `${Math.round(s.hours / 24)} days` : `${Math.max(1, Math.round(s.hours))} h`}` : "collecting…"}</span>
+      </div>
+      {s && s.points.length > 1 ? (
+        <>
+          <Sparkline values={s.points.map((p) => p[1])} label="Memory over the last week" className="h-16" />
+          <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+            {[
+              ["Average", formatBytes(s.avg_mem)],
+              ["Typical peak (p95)", formatBytes(s.p95_mem)],
+              ["Highest", formatBytes(s.peak_mem)],
+              ["Avg CPU", `${s.avg_cpu.toFixed(1)}%`],
+            ].map(([k, v]) => (
+              <div key={k}>
+                <dt className="text-xs text-kumo-subtle">{k}</dt>
+                <dd className="font-semibold tabular-nums">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </>
+      ) : (
+        <p className="text-xs text-kumo-subtle">Usage history appears after the app has run for a few minutes.</p>
+      )}
+      <p className="text-xs text-kumo-subtle text-pretty">
+        {data?.measured_mb != null
+          ? `Capacity checks use the measured ${data.measured_mb} MB instead of the ${data.estimate_mb} MB estimate.`
+          : `Capacity checks use the ${data?.estimate_mb ?? "–"} MB estimate until there’s an hour of data.`}
+      </p>
     </section>
   );
 }

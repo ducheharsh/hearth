@@ -195,3 +195,11 @@ export const useHeadscaleKey = () =>
 export const useHeadscaleJoinSelf = () => useAction((auth_key: string) => post("/headscale/join-self", { auth_key }), netKeys, "hs-join");
 export const useLoginServer = () =>
   useAction((b: { login_server: string; auth_key: string }) => post("/tailscale/login-server", b), netKeys, "login-server");
+
+export interface AppHistory {
+  summary: { points: [number, number, number][]; avg_mem: number; p95_mem: number; peak_mem: number; avg_cpu: number; hours: number } | null;
+  estimate_mb: number;
+  measured_mb: number | null;
+}
+export const useAppHistory = (id: string, enabled: boolean) =>
+  useQuery({ queryKey: ["app-history", id], queryFn: () => api<AppHistory>(`/apps/${id}/history`), enabled, refetchInterval: 60_000 });
