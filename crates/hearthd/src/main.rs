@@ -5,6 +5,7 @@
 //! loopback; the Caddy + Authelia gateway is the way in from other devices.
 
 mod api;
+mod backup;
 mod cloudflare;
 mod config;
 mod discover;
@@ -102,6 +103,7 @@ async fn main() -> anyhow::Result<()> {
         events: Mutex::new(events::EventLog::default()),
         search: RwLock::new(None),
         history: RwLock::new(history::load(&state_dir_for_history)),
+        backups: RwLock::new(backup::load(&state_dir_for_history)),
         ops: Mutex::new(()),
     });
 
@@ -111,6 +113,7 @@ async fn main() -> anyhow::Result<()> {
     tokio::spawn(discover::run_syncer(state.clone()));
     tokio::spawn(search::run_indexer(state.clone()));
     tokio::spawn(history::run_recorder(state.clone()));
+    tokio::spawn(backup::run_scheduler(state.clone()));
 
     let listener = tokio::net::TcpListener::bind(listen)
         .await

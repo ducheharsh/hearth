@@ -203,3 +203,51 @@ export interface AppHistory {
 }
 export const useAppHistory = (id: string, enabled: boolean) =>
   useQuery({ queryKey: ["app-history", id], queryFn: () => api<AppHistory>(`/apps/${id}/history`), enabled, refetchInterval: 60_000 });
+
+export interface BackupResult {
+  at: number;
+  ok: boolean;
+  snapshot: string | null;
+  bytes_added: number | null;
+  files: number | null;
+  error: string | null;
+  seconds: number;
+}
+export type BackupDestination =
+  | { kind: "local" }
+  | { kind: "s3"; endpoint: string; bucket: string; path: string }
+  | { kind: "b2"; bucket: string; path: string };
+export interface BackupSettings {
+  enabled: boolean;
+  destination: BackupDestination;
+  hour: number;
+  retention: { daily: number; weekly: number; monthly: number };
+  stop_apps: boolean;
+  include_media: boolean;
+}
+export interface BackupsOverview {
+  settings: BackupSettings;
+  ready: boolean;
+  has_credentials: boolean;
+  last_nightly: string | null;
+  apps: { id: string; name: string; icon_file: string; last: BackupResult | null; running: boolean }[];
+  image: string;
+}
+export interface Snapshot {
+  id: string;
+  short_id: string;
+  time: string;
+  tags: string[];
+  paths: string[];
+  bytes: number | null;
+}
+export const useBackups = () =>
+  useQuery({ queryKey: ["backups"], queryFn: () => api<BackupsOverview>("/backups"), refetchInterval: 5_000 });
+export const useSnapshots = (id: string | null) =>
+  useQuery({ queryKey: ["snapshots", id], queryFn: () => api<Snapshot[]>(`/backups/${id}/snapshots`), enabled: id != null, retry: false });
+export const useBackupSettings = () =>
+  useAction((b: { settings: BackupSettings; access_key_id?: string; secret_access_key?: string }) => put("/backups/settings", b), [["backups"]], "backup-settings");
+export const useBackupInit = () => useAction(() => post<{ password: string }>("/backups/init"), [["backups"]], "backup-init");
+export const useBackupRun = () => useAction((app: string | null) => post("/backups/run", { app }), [["backups"]], "backup-run");
+export const useRestore = () =>
+  useAction(({ id, snapshot }: { id: string; snapshot: string }) => post(`/backups/${id}/restore`, { snapshot }), [["backups"], ["snapshots"], keys.catalog], "restore");

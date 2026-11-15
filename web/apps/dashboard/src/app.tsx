@@ -4,6 +4,7 @@ import { Tabs } from "@cloudflare/kumo/components/tabs";
 import { useSetup, useStorage, useSystem } from "./api/hooks";
 import { GlobalSearch } from "./components/command-palette";
 import { Header } from "./components/header";
+import { Backups } from "./features/backups/backups";
 import { Containers } from "./features/containers/containers";
 import { DiscoverSheetHost } from "./features/marketplace/discover-sheet";
 import { Marketplace } from "./features/marketplace/marketplace";
@@ -15,7 +16,7 @@ import { useCompanion } from "./lib/companion";
 import { usePetMood } from "./lib/mood";
 import { useUrlParam } from "./lib/url-state";
 
-type Tab = "overview" | "apps" | "containers" | "storage" | "settings";
+type Tab = "overview" | "apps" | "containers" | "storage" | "backups" | "settings";
 
 const PETS_KEY = "hearth:pets:v1";
 function readPets(): boolean {
@@ -65,6 +66,7 @@ function Shell() {
     { value: "apps", label: "Apps" },
     { value: "containers", label: "Containers" },
     { value: "storage", label: "Storage" },
+    { value: "backups", label: "Backups" },
     { value: "settings", label: todo > 0 ? `Settings (${todo})` : "Settings" },
   ];
 
@@ -88,6 +90,8 @@ function Shell() {
               <Containers />
             ) : tab === "storage" ? (
               <Storage />
+            ) : tab === "backups" ? (
+              <Backups />
             ) : tab === "settings" ? (
               <Settings />
             ) : (

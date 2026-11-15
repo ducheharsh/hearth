@@ -7,6 +7,7 @@
 //! * [`catalog`]: loading and indexing a directory of manifests.
 //! * [`capacity`]: deciding whether an app fits on this machine right now.
 
+pub mod backup;
 pub mod capacity;
 pub mod catalog;
 pub mod compose_config;
