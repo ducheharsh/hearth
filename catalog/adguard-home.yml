@@ -15,6 +15,9 @@ compose: |
     adguard:
       image: adguard/adguardhome:latest
       restart: unless-stopped
+      # Serve the first-run wizard and the UI on :80, where the gateway expects them
+      # (otherwise the wizard is only on :3000 and the app shows a 502).
+      command: [--no-check-update, -c, /opt/adguardhome/conf/AdGuardHome.yaml, -w, /opt/adguardhome/work, --web-addr, "0.0.0.0:80"]
       ports:
         - "53:53/tcp"
         - "53:53/udp"
