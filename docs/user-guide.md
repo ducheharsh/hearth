@@ -5,7 +5,12 @@ What every part of hearth does and how to use it. For setting the machine up, se
 
 ## Overview
 
-The home screen. A health hero lists anything that needs attention (setup steps, apps that were
+The home screen. At the top is **your server's address**: the link to open hearth from your other
+devices (your Tailscale name on port 9443 once the gateway is on), with copy, **Open** and
+**Scan on Phone** (a QR code). Other ways in are listed under it (your domain, NetBird, this Mac).
+Until the gateway is on, only the local address works, and the bar offers **Set Up Access**.
+
+Below that, a health hero lists anything that needs attention (setup steps, apps that were
 rolled back, available updates, drives offline), with radial gauges for memory, CPU and disk, 1-hour
 charts, your app launcher, top memory users and the activity timeline.
 

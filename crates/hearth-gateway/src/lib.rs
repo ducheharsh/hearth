@@ -235,6 +235,60 @@ pub const fn netbird_port(port: u16) -> u16 {
     port.wrapping_add(40_000)
 }
 
+/// One way to reach the hearth dashboard.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct AccessLink {
+    /// `tailscale` | `domain` | `netbird` | `local`
+    pub kind: &'static str,
+    pub url: String,
+    /// Who can use it, in plain words.
+    pub reach: &'static str,
+}
+
+/// What can reach the dashboard right now, best first.
+///
+/// `ts_host` / `netbird_fqdn` are only passed when that network is connected; nothing but the
+/// local address works until the gateway is on.
+#[must_use]
+pub fn access_links(
+    gateway_enabled: bool,
+    ts_host: Option<&str>,
+    domain: Option<&str>,
+    netbird_fqdn: Option<&str>,
+    local: &str,
+) -> Vec<AccessLink> {
+    let mut out = Vec::new();
+    if gateway_enabled {
+        if let Some(h) = ts_host {
+            out.push(AccessLink {
+                kind: "tailscale",
+                url: format!("https://{h}:{HEARTH_PORT}"),
+                reach: "Works on any device signed in to your Tailscale",
+            });
+        }
+        if let Some(d) = domain {
+            out.push(AccessLink {
+                kind: "domain",
+                url: format!("https://{HEARTH_SUBDOMAIN}.{d}"),
+                reach: "Works anywhere, after you sign in",
+            });
+        }
+        if let Some(f) = netbird_fqdn {
+            out.push(AccessLink {
+                kind: "netbird",
+                url: format!("https://{f}:{}", netbird_port(HEARTH_PORT)),
+                reach: "Works on devices in your NetBird network",
+            });
+        }
+    }
+    out.push(AccessLink {
+        kind: "local",
+        url: local.to_owned(),
+        reach: "Only on this Mac",
+    });
+    out
+}
+
 /// Extra Caddyfile blocks for `NetBird` access (internal-CA HTTPS on `<fqdn>:<port>`).
 #[must_use]
 pub fn render_netbird_sites(routes: &[Route], nb: &NetbirdTarget) -> String {
@@ -530,6 +584,35 @@ mod tests {
         assert!(
             site.find("handle @public").expect("public")
                 < site.find("import login 8081").expect("login")
+        );
+    }
+
+    #[test]
+    fn access_links_follow_gateway_and_networks() {
+        let off = access_links(
+            false,
+            Some("m1.ts.net"),
+            Some("ex.com"),
+            None,
+            "http://127.0.0.1:9000",
+        );
+        assert_eq!(off.iter().map(|l| l.kind).collect::<Vec<_>>(), ["local"]);
+        let on = access_links(
+            true,
+            Some("m1.ts.net"),
+            Some("ex.com"),
+            Some("m1.netbird.cloud"),
+            "http://127.0.0.1:9000",
+        );
+        let urls: Vec<_> = on.iter().map(|l| l.url.as_str()).collect();
+        assert_eq!(
+            urls,
+            [
+                "https://m1.ts.net:9443",
+                "https://hearth.ex.com",
+                "https://m1.netbird.cloud:49443",
+                "http://127.0.0.1:9000"
+            ]
         );
     }
 

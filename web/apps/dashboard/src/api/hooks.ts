@@ -323,3 +323,15 @@ export const usePackPlan = (id: string, withIds: string[]) =>
   });
 export const useInstallPack = () =>
   useAction(({ id, with: w, force }: { id: string; with: string[]; force?: boolean }) => post(`/packs/${id}/install`, { with: w, force }), [["packs"], keys.catalog], "install-pack");
+
+export interface AccessLink {
+  kind: "tailscale" | "domain" | "netbird" | "local";
+  url: string;
+  reach: string;
+}
+export const useAccess = () =>
+  useQuery({
+    queryKey: ["access"],
+    queryFn: () => api<{ gateway_enabled: boolean; links: AccessLink[]; qr_svg: string | null }>("/access"),
+    refetchInterval: 30_000,
+  });

@@ -19,6 +19,7 @@ pub fn routes() -> Router<SharedState> {
         .route("/system", get(system))
         .route("/events", get(events))
         .route("/setup", get(setup))
+        .route("/access", get(access))
 }
 
 #[derive(Serialize)]
@@ -178,4 +179,47 @@ async fn setup(State(st): State<SharedState>) -> Json<Vec<Check>> {
             tab: "settings",
         },
     ])
+}
+
+/// Every address that reaches the dashboard right now, plus a QR code for the best one.
+async fn access(State(st): State<SharedState>) -> Json<serde_json::Value> {
+    let (gateway, domain, nb_on) = {
+        let s = st.settings.read().await;
+        (s.gateway_enabled, s.domain.clone(), s.netbird_enabled)
+    };
+    let ts = {
+        let t = st.tailscale.read().await;
+        (t.backend_state == "Running")
+            .then(|| t.dns_name.clone())
+            .flatten()
+    };
+    let ts = st.config.ts_host.clone().or(ts);
+    let netbird = if nb_on {
+        hearth_host::netbird::status()
+            .await
+            .ok()
+            .filter(|s| s.connected)
+            .and_then(|s| s.fqdn)
+    } else {
+        None
+    };
+    let local = format!("http://{}", st.config.listen);
+    let links = hearth_gateway::access_links(
+        gateway,
+        ts.as_deref(),
+        domain.as_deref(),
+        netbird.as_deref(),
+        &local,
+    );
+    let qr = links
+        .first()
+        .filter(|l| l.kind != "local")
+        .and_then(|l| qrcode::QrCode::new(l.url.as_bytes()).ok())
+        .map(|q| {
+            q.render::<qrcode::render::svg::Color<'_>>()
+                .min_dimensions(176, 176)
+                .quiet_zone(true)
+                .build()
+        });
+    Json(serde_json::json!({ "gateway_enabled": gateway, "links": links, "qr_svg": qr }))
 }

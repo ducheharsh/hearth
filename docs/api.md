@@ -20,6 +20,7 @@ Conventions:
 | GET | `/system` | Latest host sample + 1 h history |
 | GET | `/events` | Activity feed (`?after=<seq>`) |
 | GET | `/setup` | Setup checklist items with state |
+| GET | `/access` | Addresses that reach the dashboard now (best first) + QR code for the best one |
 | GET | `/search?q=` | ⌘K search across apps, Discover, containers, drives, settings |
 
 ## Apps (`apps.rs`)

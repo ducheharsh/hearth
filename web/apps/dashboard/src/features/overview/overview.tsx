@@ -26,6 +26,7 @@ import { api } from "../../api/client";
 import { useCatalog, useContainers, useSetup, useStorage, useSystem, useTailscale, useUpdates } from "../../api/hooks";
 import type { HearthEvent, SystemSample } from "../../api/types";
 import { navigate } from "../../lib/url-state";
+import { AccessBar } from "./access-bar";
 
 const pct = (n: number) => formatPercent(n);
 const bytes = (n: number) => formatBytes(n);
@@ -84,6 +85,7 @@ export function Overview() {
 
   return (
     <div className="flex flex-col gap-10">
+      <AccessBar />
       <Hero s={s} name={data.display_name} />
 
       <motion.div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]" initial="hidden" animate="show">
