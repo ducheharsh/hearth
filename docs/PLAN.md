@@ -87,7 +87,7 @@ hearth UI: https://<ts-host>:9443 → Caddy → host.docker.internal:9000 (heart
 - [x] Pets speak (event feed → speech bubbles + toasts)
 - [ ] Verify on the M1: gateway end-to-end, Cloudflare/Funnel/ngrok with real accounts,
       `host.docker.internal` → loopback hearthd under OrbStack
-- [ ] launchd plist + `hearth install-service`
+- [x] launchd agent: `hearthd service install|uninstall|status`; Homebrew `service do`; Hearth.app menu bar + DMG
 
 ### Phase 1.7: polish + reach ✅
 - [x] Settings redesign: section sidebar, setting groups/rows, sticky save bar (`@hearth/ui/components/settings`)
@@ -121,7 +121,7 @@ hearth UI: https://<ts-host>:9443 → Caddy → host.docker.internal:9000 (heart
 - [ ] Manifest `upstream.host_header` (Syncthing needs `Host: localhost`)
 - [ ] Set `require_remote_user = true` by default once the gateway fronts hearthd
 - [ ] Verify `host.docker.internal` reaches the loopback-bound hearthd under OrbStack
-- [ ] launchd plist + `hearth install-service`
+- [x] launchd agent: `hearthd service install|uninstall|status`; Homebrew `service do`; Hearth.app menu bar + DMG
 
 ### Phase 3: operations
 - [x] Start/stop/restart/logs per app; update (pull + recreate) with "update available" badge, health gate and automatic rollback

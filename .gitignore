@@ -4,3 +4,4 @@ hearth.toml
 node_modules/
 web/apps/*/dist/
 *.tsbuildinfo
+/dist

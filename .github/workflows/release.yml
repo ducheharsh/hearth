@@ -1,0 +1,41 @@
+name: Release
+
+# Run from the Actions tab with a version (must match Cargo.toml), e.g. 0.2.0.
+# Builds Hearth.app, the DMG and the Homebrew tarball on Apple silicon and attaches
+# them to the GitHub release v<version> (created as a draft if it doesn't exist).
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version without the v (must match Cargo.toml)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Check version
+        run: grep -q "^version = \"${{ inputs.version }}\"" Cargo.toml
+      - name: Build
+        run: packaging/macos/build.sh
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v${{ inputs.version }}"
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --draft --title "hearth ${{ inputs.version }}" --notes "Draft: write release notes."
+          gh release upload "$tag" dist/*.dmg dist/*.tar.gz dist/SHA256SUMS --clobber

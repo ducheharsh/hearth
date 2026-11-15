@@ -121,22 +121,37 @@ Packs are plain YAML in [`catalog/packs/`](catalog/packs): [write your own](docs
 
 ## Quick start
 
-**You need** a Mac on Apple silicon, [OrbStack](https://orbstack.dev) (or Docker Desktop),
-[Tailscale](https://tailscale.com), and Rust + pnpm to build (`brew install rustup pnpm && rustup default stable`).
+**You need** a Mac on Apple silicon (macOS 13+), [OrbStack](https://orbstack.dev) or Docker Desktop, and
+[Tailscale](https://tailscale.com) for access from your other devices.
+
+### Option 1: the app (easiest)
+
+Download **[Hearth.dmg](https://github.com/ducheharsh/hearth/releases/latest)**, open it and drag **Hearth** to
+Applications. On first launch it starts hearth in the background and adds an Ember icon to the menu bar
+(Open Dashboard, copy your server address, start at login).
+
+> The app isn't notarized yet. The first time, right-click **Hearth** → **Open**, or allow it in
+> System Settings → Privacy & Security.
+
+### Option 2: Homebrew
+
+```bash
+brew install ducheharsh/tap/hearth
+brew services start hearth          # runs now and at every login
+```
+
+### Option 3: from source
 
 ```bash
 git clone https://github.com/ducheharsh/hearth.git && cd hearth
-pnpm -C web install && pnpm -C web build      # build the dashboard
-cargo build --release -p hearthd               # one binary, dashboard included
-cp hearth.example.toml hearth.toml
-./target/release/hearthd --config hearth.toml
+pnpm -C web install && pnpm -C web build
+cargo build --release -p hearthd
+./target/release/hearthd service install   # or just ./target/release/hearthd
 ```
 
-Open **http://127.0.0.1:9000**, then follow **Settings → Setup**: connect Tailscale, add a login, and turn
-on the gateway. The top of Overview then shows your server's address (with a QR code) to open it from your
-phone. Full guide: [docs/operations.md](docs/operations.md).
-
-> A Homebrew formula (`brew services start hearth`) and a login service are on the way.
+Then open **http://127.0.0.1:9000** and follow **Settings → Setup**: connect Tailscale, add a login, and turn
+on the gateway. The top of Overview shows your server's address (with a QR code) to open it from your phone.
+Full guide: [docs/operations.md](docs/operations.md).
 
 ## How it works
 

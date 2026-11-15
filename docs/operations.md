@@ -7,25 +7,54 @@ Running hearth on the Mac, where things live, and what to do when something brea
 - macOS on Apple silicon (Linux support is planned), 8 GB RAM is the design target.
 - [OrbStack](https://orbstack.dev) (or Docker Desktop) for containers.
 - [Tailscale](https://tailscale.com) for remote access (or NetBird / your own Headscale).
-- Homebrew, if you want packs with native apps (Ollama).
+- Homebrew, if you want packs with native apps (Ollama) or the Homebrew install.
 - An external SSD for the Vault / Media / Backups roles (recommended).
 
-## Build and run
+## Install
 
-```bash
-brew install rustup pnpm && rustup default stable
-pnpm -C web install && pnpm -C web build      # dashboard → web/apps/dashboard/dist
-cargo build --release -p hearthd               # embeds the dashboard
-cp hearth.example.toml hearth.toml
-./target/release/hearthd --config hearth.toml
+| Way | Install | Runs at login via |
+|---|---|---|
+| **Hearth.app** (DMG from Releases) | Drag to Applications, open it | `hearthd service install` (done by the app on first launch) |
+| **Homebrew** | `brew install ducheharsh/tap/hearth` | `brew services start hearth` |
+| **Source** | `cargo build --release -p hearthd` (after `pnpm -C web build`) | `./target/release/hearthd service install` |
+
+Use one login service, not two: the app and `hearthd service install` refuse to install when the
+Homebrew service exists.
+
+The app isn't notarized yet. On first open, right-click → **Open** (or System Settings → Privacy &
+Security → **Open Anyway**). From a terminal: `xattr -dr com.apple.quarantine /Applications/Hearth.app`.
+
+### The binary
+
+`hearthd` is a single file: the dashboard and the curated catalog (apps, packs, logos) are built in.
+With no catalog next to it, it unpacks the built-in one to `<state_dir>/catalog` on every start, so
+upgrades bring new apps.
+
+```
+hearthd                      run the daemon (default)
+hearthd service install      start at login (launchd agent dev.hearth.hearthd, KeepAlive)
+hearthd service uninstall    stop doing that (apps and data untouched)
+hearthd service status       is it running?
+hearthd open                 open the dashboard
+hearthd --config <file>      use a specific hearth.toml (default: ./hearth.toml, else ~/.hearth/hearth.toml)
 ```
 
-Open `http://127.0.0.1:9000`. From another device before the gateway is on:
-`ssh -L 9000:localhost:9000 <mac>`. Then in Settings: connect Tailscale, add a login, turn on the
-gateway, and the dashboard and apps are reachable over HTTPS on your tailnet.
+Logs: `<state_dir>/logs/hearthd.log` (login service), or `$(brew --prefix)/var/log/hearth.log` (Homebrew).
 
-Running it at login with launchd is on the roadmap (`hearth install-service`); for now use a
-LaunchAgent that runs the command above with `KeepAlive`.
+### Building the app and DMG
+
+```bash
+packaging/macos/build.sh      # → dist/Hearth.app, dist/Hearth-<version>.dmg, Homebrew tarball, SHA256SUMS
+```
+
+It builds the dashboard and `hearthd`, compiles the Swift menu bar app (`packaging/macos/HearthMenu.swift`),
+makes the icon, signs ad-hoc and packs the DMG. The **Release** GitHub workflow runs the same script.
+
+## First run
+
+Open `http://127.0.0.1:9000`. From another device before the gateway is on:
+`ssh -L 9000:localhost:9000 <mac>`. Then in Settings: connect Tailscale, add a login, and turn on the
+gateway, and the dashboard and apps are reachable over HTTPS on your tailnet.
 
 ## Configuration
 

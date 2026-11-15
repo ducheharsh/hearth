@@ -112,7 +112,9 @@ alert dispatcher, which filters by level and de-duplicates.
 - `apps/dashboard`: the app. TanStack Query for server state (`src/api/hooks.ts`), URL search params
   for view state (`?tab=apps&view=discover&app=immich`), feature folders under `src/features/`.
 
-Release builds embed `apps/dashboard/dist` into `hearthd` (rust-embed); debug builds read it from disk.
+Release builds embed `apps/dashboard/dist` and `catalog/` into `hearthd` (rust-embed); debug builds read them
+from disk. `packaging/macos/` wraps the binary in Hearth.app, a Swift menu bar companion (status, open dashboard,
+copy address, start at login), and a DMG.
 A service worker (`public/sw.js`) caches hashed assets and the shell; `/api` is never cached.
 
 See [STANDARDS.md](STANDARDS.md) for the patterns every change follows.
